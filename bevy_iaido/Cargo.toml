@@ -26,7 +26,6 @@ bevy = { version = "0.14", default-features = false, optional = true, features =
     "bevy_render",
     "bevy_core_pipeline",
     "bevy_sprite",
-    "multi-threaded",
 ] }
 bevy_kira_audio = { version = "0.19", optional = true }
 

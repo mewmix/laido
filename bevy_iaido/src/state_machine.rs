@@ -170,7 +170,7 @@ impl DuelMachine {
             TIE_WINDOW_MS,
         );
         // Store metadata and result (preallocated capacity prevents allocs during duel)
-        self.round_meta.push(RoundMeta { go_ts_ms: go, human: self.human_swipe, ai: self.ai_swipe });
+        self.round_meta.push(RoundMeta { go_ts_ms: go, human: self.human_swipe.clone(), ai: self.ai_swipe.clone() });
         self.round_results.push(RoundResult {
             opening: self.opening,
             outcome,
@@ -209,8 +209,8 @@ impl DuelMachine {
             seed: self.seed,
             opening: rr.opening,
             go: GoEvent { ts_ms: meta.go_ts_ms },
-            human: meta.human,
-            ai: meta.ai,
+            human: meta.human.clone(),
+            ai: meta.ai.clone(),
             outcome: rr.outcome,
         })
     }
