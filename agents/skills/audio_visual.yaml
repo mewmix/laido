@@ -1,0 +1,106 @@
+name: iaido-audio-visual
+version: 0.1.0
+description: >-
+  Implements minimal, deterministic audio/visual feedback for the IAIDO duel MVP using Bevy. 
+  Focuses on high-performance (120 FPS target) mobile portrait rendering, silhouette aesthetics, 
+  and strictly event-driven audio cues without background music.
+assumptions:
+  - The project uses Bevy game engine.
+  - `bevy_iaido` core logic emits specific events: GoCue, SlashCue, ClashCue, WinCue/LossCue.
+  - Target devices (iOS/Android) support High Refresh Rate (120Hz) or gracefully fallback.
+  - Assets are served from the standard `assets/` directory.
+prerequisites:
+  - rustc >= 1.75
+  - bevy >= 0.13
+  - bevy_kira_audio >= 0.19
+non_goals:
+  - Background music.
+  - 3D models or complex geometry.
+  - Camera motion, shake, or zoom.
+  - UI overlays during the active duel phase.
+  - Network state interpolation (visuals reflect local state only).
+capabilities:
+  - render: Fixed-viewport 2D sprite rendering (high contrast silhouettes).
+  - audio: Low-latency event-triggered SFX and minimal ambient loop.
+  - feedback: 1-2 frame visual cues (red flash, sparks) reacting to simulation events.
+inputs:
+  events:
+    - GoCue
+    - SlashCue { actor: Entity }
+    - ClashCue
+    - WinCue { winner: Entity }
+outputs:
+  - visual: 120 FPS render loop to screen.
+  - audio: System audio output.
+environment:
+  vars:
+    RUST_LOG: "error,iaido_av=debug"
+    WGPU_POWER_PREF: "high"
+os_permissions:
+  - android.permission.MODIFY_AUDIO_SETTINGS
+platform_entitlements: []
+tools:
+  - name: cargo
+    usage: cargo build --release --features bevy/trace_chrome
+  - name: ffmpeg
+    usage: (Optional) To trim/normalize placeholder audio assets.
+commands:
+  setup_placeholders:
+    description: Generate directory structure and placeholder asset files to prevent runtime load errors.
+    exec: |
+      mkdir -p assets/audio assets/textures
+      touch assets/audio/wind_loop.ogg assets/audio/go.ogg assets/audio/draw.ogg assets/audio/clash.ogg assets/audio/hit.ogg
+      touch assets/textures/silhouette_idle.png assets/textures/silhouette_slash.png assets/textures/spark.png
+  verify_performance:
+    description: Run with frame time diagnostics.
+    exec: cargo run --release --example iaido --features bevy/log_diagnostics
+tasks:
+  - name: dependency_wiring
+    description: Integrate audio backend.
+    steps:
+      - Add `bevy_kira_audio` to `Cargo.toml`.
+      - Initialize `AudioPlugin` in the main App builder.
+      - Configure audio channels (SFX: mixed, Ambience: looped).
+  - name: asset_management
+    description: Robust pre-loading of AV assets.
+    steps:
+      - Create `AvAssets` resource to hold handles.
+      - Implement startup system to load all paths defined in `setup_placeholders`.
+      - Fallback logic: If an asset fails to load, map to a default "silent" handle to prevent panics.
+  - name: visual_systems
+    description: Implement rendering logic.
+    steps:
+      - Configure `WindowPlugin` for Portrait resolution (e.g., 9:16 aspect).
+      - Spawn `Camera2dBundle` (fixed, no movement).
+      - Implement `update_silhouettes`: Switch sprite index based on `SlashCue` (1-2 frame duration).
+      - Implement `clash_feedback`: Spawn "spark" sprite at center on `ClashCue`, despawn after 0.1s.
+      - Implement `hit_feedback`: Spawn full-screen red tint overlay with alpha decay on `WinCue`.
+  - name: audio_systems
+    description: Implement event listeners.
+    steps:
+      - System `play_ambience`: Start `wind_loop.ogg` on loop at startup.
+      - System `trigger_sfx`: Query `EventReader<T>`, play corresponding sound via `AudioChannel`.
+        - GoCue -> `go.ogg`
+        - SlashCue -> `draw.ogg`
+        - ClashCue -> `clash.ogg`
+        - WinCue -> `hit.ogg`
+safety:
+  - determinism: Visuals must strictly follow simulation events; no random variation in gameplay cues.
+  - performance: All systems must be O(1) relative to game state (max 2 entities).
+  - memory: Zero allocations inside the main game loop (reuse event readers).
+  - stability: Missing assets result in no-op, not crashes.
+observability:
+  - logging: Log event reception and asset loading failures.
+  - metrics: Monitor `frame_time` via Bevy diagnostics; alert if > 8.3ms.
+validation:
+  - manual_check: Verify "Go" sound aligns with visual signal. Verify screen flash on hit.
+  - stress_test: Trigger all events simultaneously in a test harness and check for frame drops.
+done:
+  criteria:
+    - Application compiles and runs.
+    - Ambience loops.
+    - Sprites change on slash.
+    - Screen flashes red on hit.
+    - Framerate holds 120fps on target hardware (or sim).
+rollback:
+  manual: Remove `iaido-audio-visual` plugin from main app; revert `Cargo.toml` changes.

@@ -50,8 +50,8 @@ impl Plugin for IaidoPlugin {
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
             .add_event::<ClashCue>()
-            .add_systems(Startup, setup)
-            .add_systems(Update, (update_time, read_input, drive_ai, advance_duel, react_outcomes));
+            .add_systems(Startup, (setup, setup_visuals))
+            .add_systems(Update, (update_time, read_input, drive_ai, advance_duel, react_outcomes, update_visuals));
     }
 }
 
@@ -67,6 +67,27 @@ fn setup(mut commands: Commands, settings: Res<IaidoSettings>) {
     commands.insert_resource(DuelRuntime { machine, swipe, cfg, ai_rng, ai_plan: None, ai_profile });
 }
 
+// Minimal silhouettes and hit flash state
+#[cfg(feature = "bevy")]
+#[derive(Component)]
+struct HumanSilhouette;
+
+#[cfg(feature = "bevy")]
+#[derive(Component)]
+struct AiSilhouette;
+
+#[cfg(feature = "bevy")]
+#[derive(Resource, Default)]
+struct VisualFlash { human_ms: u64, ai_ms: u64, clash_ms: u64 }
+
+#[cfg(feature = "bevy")]
+fn setup_visuals(mut commands: Commands) {
+    // Human on left, AI on right; simple rectangles as silhouettes
+    commands.spawn((Sprite::from_color(Color::GRAY), Transform::from_xyz(-150.0, 0.0, 0.0), HumanSilhouette));
+    commands.spawn((Sprite::from_color(Color::GRAY), Transform::from_xyz(150.0, 0.0, 0.0), AiSilhouette));
+    commands.insert_resource(VisualFlash::default());
+}
+
 #[cfg(feature = "bevy")]
 fn update_time(mut rt: ResMut<DuelRuntime>, time: Res<Time>) {
     let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
@@ -77,6 +98,8 @@ fn update_time(mut rt: ResMut<DuelRuntime>, time: Res<Time>) {
 fn read_input(
     mut rt: ResMut<DuelRuntime>,
     mut touches: EventReader<TouchInput>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
+    mut mouse_motion: EventReader<MouseMotion>,
     time: Res<Time>,
 ) {
     let dt_ms = (time.delta_seconds_f64() * 1000.0) as u64;
@@ -93,6 +116,20 @@ fn read_input(
             }
             _ => {}
         }
+    }
+
+    // Desktop mouse-drag adapter: hold left button and move to generate swipe deltas
+    if mouse_buttons.pressed(MouseButton::Left) {
+        for m in mouse_motion.read() {
+            let sample = SwipeSample { dt_ms, dx: m.delta.x, dy: m.delta.y };
+            if let Some(dir) = rt.swipe.update(&rt.cfg, sample) {
+                let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+                rt.machine.on_swipe(Actor::Human, dir, now_ms);
+            }
+        }
+    } else {
+        // Reset detector when button released to avoid stale state
+        rt.swipe.reset();
     }
 }
 
@@ -140,3 +177,30 @@ fn react_outcomes(
     }
 }
 
+#[cfg(feature = "bevy")]
+fn update_visuals(
+    time: Res<Time>,
+    mut vf: ResMut<VisualFlash>,
+    mut humans: Query<&mut Sprite, With<HumanSilhouette>>,
+    mut ais: Query<&mut Sprite, (With<AiSilhouette>, Without<HumanSilhouette>)>,
+    mut slashes: EventReader<SlashCue>,
+    mut clashes: EventReader<ClashCue>,
+) {
+    let dt_ms = (time.delta_seconds_f64() * 1000.0) as u64;
+    for e in slashes.read() {
+        match e.actor { Actor::Human => vf.ai_ms = 200, Actor::Ai => vf.human_ms = 200 }
+    }
+    for _ in clashes.read() { vf.clash_ms = 100; }
+
+    vf.human_ms = vf.human_ms.saturating_sub(dt_ms);
+    vf.ai_ms = vf.ai_ms.saturating_sub(dt_ms);
+    vf.clash_ms = vf.clash_ms.saturating_sub(dt_ms);
+
+    let base = if vf.clash_ms > 0 { Color::YELLOW } else { Color::GRAY };
+    if let Ok(mut s) = humans.get_single_mut() {
+        s.color = if vf.human_ms > 0 { Color::RED } else { base };
+    }
+    if let Ok(mut s) = ais.get_single_mut() {
+        s.color = if vf.ai_ms > 0 { Color::RED } else { base };
+    }
+}

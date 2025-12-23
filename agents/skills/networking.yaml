@@ -1,0 +1,142 @@
+name: iaido-networking
+version: 0.1.0
+description: Establish minimal, offline-first networking scaffolding for a mobile Bevy game, enabling remote asset fetching without blocking deterministic duel loops.
+assumptions:
+  - The project is a Bevy (Rust) application.
+  - Target platforms are Android and iOS (portrait mode).
+  - Deterministic performance is critical for the duel loop.
+  - Assets are hosted on an HTTPS compliant server.
+prerequisites:
+  - Existing Bevy crate in `bevy_iaido/`.
+  - Android and iOS build artifacts or directories created or planned.
+  - Rust toolchain with `aarch64-linux-android` and `aarch64-apple-ios` targets (optional for scaffolding, required for validation).
+non_goals:
+  - Real-time multiplayer or peer-to-peer networking.
+  - Analytics, telemetry, or user data collection.
+  - Complex state synchronization or lag compensation.
+capabilities:
+  - Inject networking permissions into mobile manifests (AndroidManifest.xml, Info.plist).
+  - Add and configure async HTTP client dependencies (Reqwest/Bevy HTTP).
+  - Generate a thread-safe, non-blocking network scaffolding module.
+  - Implement offline-fallback logic for essential assets.
+inputs:
+  - name: remote_asset_url
+    type: string
+    description: Base URL for fetching remote configuration or assets.
+    required: true
+  - name: connection_timeout
+    type: integer
+    description: Connection timeout in seconds (default strict/short).
+    required: false
+    default: 5
+outputs:
+  - name: cargo_config
+    type: file
+    path: bevy_iaido/Cargo.toml
+    description: Updated Cargo configuration with networking crates.
+  - name: network_module
+    type: file
+    path: bevy_iaido/src/network.rs
+    description: New Rust module for async asset fetching.
+  - name: android_manifest_patch
+    type: string
+    description: XML snippet injected into AndroidManifest.xml.
+  - name: ios_plist_patch
+    type: string
+    description: Key-value pairs injected into Info.plist.
+environment:
+  - name: IAIDO_ASSET_SERVER
+    description: Optional override for the asset server URL during development.
+    required: false
+os_permissions:
+  - purpose: Fetch remote assets (tutorial strings, audio) at startup.
+    platform: Android
+    scope: INTERNET permission.
+  - purpose: Fetch remote assets at startup.
+    platform: iOS
+    scope: Network access via App Transport Security settings.
+platform_entitlements:
+  - platform: Android
+    key: android.permission.INTERNET
+    rationale: Required to download assets.
+  - platform: Android
+    key: android.permission.ACCESS_NETWORK_STATE
+    rationale: Check for connectivity to avoid failing calls.
+  - platform: iOS
+    key: NSAppTransportSecurity
+    value: NSAllowsArbitraryLoads=false
+    rationale: Enforce HTTPS; exception only if localhost dev is enabled.
+tools:
+  - name: cargo
+    purpose: Dependency management and compilation checks.
+  - name: sed
+    purpose: Text stream manipulation for manifest injection.
+commands:
+  - template: cargo add reqwest --features "json rustls-tls"
+    use_when: Initializing networking dependencies in Rust.
+  - template: sed -i '' '/<manifest/a\\n    <uses-permission android:name=\"android.permission.INTERNET\" />' ${MANIFEST_PATH}
+    use_when: Adding permissions to AndroidManifest.xml.
+tasks:
+  - id: scaffold-deps
+    name: Add Rust Dependencies
+    goal: Integrate async networking crates without OpenSSL complexity.
+    steps:
+      - Execute `cargo add` for `reqwest` (with `rustls-tls` for mobile compatibility) and `tokio`.
+      - Verify `Cargo.toml` formatting.
+    inputs: []
+    outputs: [bevy_iaido/Cargo.toml]
+    constraints: Avoid native-tls to prevent cross-compilation linking errors on Android.
+  - id: config-android
+    name: Configure Android Permissions
+    goal: Allow internet access in Android build.
+    steps:
+      - Locate `AndroidManifest.xml` (usually in `mobile/android/...` or `build/android/...`).
+      - Check for existing INTERNET permission.
+      - Inject `<uses-permission android:name="android.permission.INTERNET" />` if missing.
+      - Ensure cleartext traffic is disabled (default secure).
+    inputs: [path_to_manifest]
+    outputs: [AndroidManifest.xml]
+    constraints: Idempotent operations only.
+  - id: config-ios
+    name: Configure iOS Permissions
+    goal: Setup App Transport Security.
+    steps:
+      - Locate `Info.plist`.
+      - Add `NSAppTransportSecurity` dictionary if missing.
+      - Set `NSAllowsArbitraryLoads` to `false` (production) or allow specific domain exceptions.
+    inputs: [path_to_plist]
+    outputs: [Info.plist]
+    constraints: Must default to secure (HTTPS only).
+  - id: impl-network-mod
+    name: Implement Network Module
+    goal: Create a Bevy plugin for background asset fetching.
+    steps:
+      - Create `bevy_iaido/src/network.rs`.
+      - Define `NetworkingPlugin`.
+      - Implement a startup system that spawns a Tokio task for fetching.
+      - Store results in a thread-safe Resource (e.g., `NetworkAssets`).
+      - Handle errors by falling back to bundled default assets (offline-first).
+      - Ensure no tasks are spawned during the `Update` schedule (game loop).
+    inputs: [remote_asset_url]
+    outputs: [bevy_iaido/src/network.rs]
+    constraints: Zero garbage collection/allocation pressure during `Combat` state.
+safety:
+  determinism: Networking must strictly occur in `Startup` or `AssetLoading` states, never during `Duel` state.
+  performance: Use `rustls` for optimal mobile performance. No blocking I/O on main thread.
+  privacy: No telemetry or PII sent. Request headers must be sanitized.
+observability:
+  logging: "Log events: `NetStart`, `NetSuccess`, `NetFail` using `bevy::log`. Redact URLs."
+  redaction: "Mask sensitive query params in logs."
+validation:
+  checks:
+    - `cargo check` passes.
+    - AndroidManifest.xml contains `android.permission.INTERNET`.
+    - Network calls are wrapped in `task::spawn` and not blocking main thread.
+    - Offline startup test: Game must boot even if `remote_asset_url` is unreachable.
+done:
+  definition: "Networking crate added, permissions configured, and a non-blocking fetcher system is implemented and compiled."
+rollback:
+  steps:
+    - `cargo remove reqwest`
+    - Revert changes to `AndroidManifest.xml` and `Info.plist`.
+    - Delete `bevy_iaido/src/network.rs` and remove module reference from `lib.rs`.
