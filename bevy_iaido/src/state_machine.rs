@@ -19,6 +19,7 @@ impl Default for DuelConfig {
 pub struct DuelMachine {
     pub phase: DuelPhase,
     pub rng: XorShift32,
+    pub seed: u32,
     pub opening: Opening,
     pub go_ts_ms: Option<u64>,
     pub phase_start_ms: u64,
@@ -26,6 +27,7 @@ pub struct DuelMachine {
     pub human_swipe: Option<SwipeEvent>,
     pub ai_swipe: Option<SwipeEvent>,
     pub round_results: Vec<RoundResult>,
+    pub round_meta: Vec<RoundMeta>,
     pub match_state: MatchState,
     pub human_score: u8,
     pub ai_score: u8,
@@ -39,6 +41,7 @@ impl DuelMachine {
         Self {
             phase: DuelPhase::Standoff,
             rng,
+            seed: cfg.seed,
             opening,
             go_ts_ms: None,
             phase_start_ms: start_ms,
@@ -46,6 +49,7 @@ impl DuelMachine {
             human_swipe: None,
             ai_swipe: None,
             round_results: Vec::with_capacity(3),
+            round_meta: Vec::with_capacity(3),
             match_state: MatchState::InProgress,
             human_score: 0,
             ai_score: 0,
@@ -165,6 +169,8 @@ impl DuelMachine {
             ai_r,
             TIE_WINDOW_MS,
         );
+        // Store metadata and result (preallocated capacity prevents allocs during duel)
+        self.round_meta.push(RoundMeta { go_ts_ms: go, human: self.human_swipe, ai: self.ai_swipe });
         self.round_results.push(RoundResult {
             opening: self.opening,
             outcome,
@@ -193,6 +199,27 @@ impl DuelMachine {
         else if self.ai_score >= ROUNDS_TO_WIN { self.match_state = MatchState::AiWon; }
         else { self.match_state = MatchState::InProgress; }
     }
+
+    // Export last round as a DuelLog for deterministic replay
+    pub fn last_duel_log(&self) -> Option<crate::logging::DuelLog> {
+        let i = self.round_results.len().checked_sub(1)?;
+        let rr = &self.round_results[i];
+        let meta = &self.round_meta[i];
+        Some(crate::logging::DuelLog {
+            seed: self.seed,
+            opening: rr.opening,
+            go: GoEvent { ts_ms: meta.go_ts_ms },
+            human: meta.human,
+            ai: meta.ai,
+            outcome: rr.outcome,
+        })
+    }
+
+    #[cfg(test)]
+    pub fn force_go(&mut self, now_ms: u64) { self.phase = DuelPhase::GoSignal; self.go_ts_ms = Some(now_ms); self.phase_start_ms = now_ms; }
+
+    #[cfg(test)]
+    pub fn open_input(&mut self, now_ms: u64) { self.phase = DuelPhase::InputWindow; self.go_ts_ms = Some(now_ms); self.phase_start_ms = now_ms; }
 }
 
 pub fn pick_opening(rng: &mut XorShift32) -> Opening {

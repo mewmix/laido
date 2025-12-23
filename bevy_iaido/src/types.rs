@@ -39,6 +39,13 @@ pub struct RoundResult {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RoundMeta {
+    pub go_ts_ms: u64,
+    pub human: Option<SwipeEvent>,
+    pub ai: Option<SwipeEvent>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GoEvent { pub ts_ms: u64 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
