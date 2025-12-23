@@ -56,8 +56,18 @@ impl Plugin for IaidoPlugin {
             .add_event::<SlashCue>()
             .add_event::<ClashCue>()
             .add_plugins(bevy_kira_audio::AudioPlugin)
-            .add_systems(Startup, (setup, setup_visuals, setup_audio))
-            .add_systems(Update, (update_time, read_input, drive_ai, advance_duel, react_outcomes, update_visuals, react_audio));
+            .add_systems(Startup, (setup, setup_visuals, setup_overlay, setup_audio))
+            .add_systems(Update, (
+                update_time,
+                read_input,
+                drive_ai,
+                advance_duel,
+                react_outcomes,
+                update_visuals,
+                update_overlay,
+                restart_on_finished,
+                react_audio,
+            ));
     }
 }
 
@@ -232,6 +242,69 @@ fn update_visuals(
     }
     if let Ok(mut s) = ais.get_single_mut() {
         s.color = if vf.ai_ms > 0 { Color::RED } else { base };
+    }
+}
+
+// Between-rounds overlay: three small bars showing round outcomes; hidden during duel
+#[cfg(feature = "bevy")]
+#[derive(Component)]
+struct RoundBar { index: usize }
+
+#[cfg(feature = "bevy")]
+#[derive(Resource, Default)]
+struct OverlayState { show_ms: u64 }
+
+#[cfg(feature = "bevy")]
+fn setup_overlay(mut commands: Commands) {
+    let y = 260.0; // near top for 720x1280 portrait
+    for i in 0..3 {
+        let x = -40.0 + i as f32 * 40.0;
+        commands.spawn((Sprite::from_color(Color::DARK_GRAY), Transform::from_xyz(x, y, 1.0).with_scale(Vec3::new(20.0, 8.0, 1.0)), RoundBar { index: i }));
+    }
+    commands.insert_resource(OverlayState::default());
+}
+
+#[cfg(feature = "bevy")]
+fn update_overlay(
+    time: Res<Time>,
+    mut ov: ResMut<OverlayState>,
+    rt: Res<DuelRuntime>,
+    mut bars: Query<(&RoundBar, &mut Sprite)>,
+) {
+    // Show overlay only during ResultFlash and NextRound
+    let phase = rt.machine.phase;
+    let show = matches!(phase, DuelPhase::ResultFlash | DuelPhase::NextRound);
+    if show { ov.show_ms = 500; } else { ov.show_ms = ov.show_ms.saturating_sub((time.delta_seconds_f64() * 1000.0) as u64); }
+
+    let visible = show || ov.show_ms > 0;
+    let rounds = &rt.machine.round_results;
+    for (rb, mut sprite) in bars.iter_mut() {
+        let color = if !visible { Color::NONE } else {
+            // Color bars by outcome of each round
+            if let Some(rr) = rounds.get(rb.index) {
+                match rr.outcome {
+                    Outcome::HumanWin | Outcome::WrongAi | Outcome::EarlyAi => Color::RED,
+                    Outcome::AiWin | Outcome::WrongHuman | Outcome::EarlyHuman => Color::BLUE,
+                    Outcome::Clash => Color::YELLOW,
+                }
+            } else { Color::DARK_GRAY }
+        };
+        sprite.color = color;
+    }
+}
+
+#[cfg(feature = "bevy")]
+fn restart_on_finished(
+    mut rt: ResMut<DuelRuntime>,
+    time: Res<Time>,
+    touches: Res<Touches>,
+    mouse: Res<ButtonInput<MouseButton>>,
+) {
+    if !matches!(rt.machine.match_state, MatchState::HumanWon | MatchState::AiWon) { return; }
+    let clicked = mouse.just_pressed(MouseButton::Left) || touches.iter_just_pressed().next().is_some();
+    if clicked {
+        let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+        rt.machine.reset_match(now_ms);
     }
 }
 

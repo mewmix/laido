@@ -220,6 +220,22 @@ impl DuelMachine {
 
     #[cfg(test)]
     pub fn open_input(&mut self, now_ms: u64) { self.phase = DuelPhase::InputWindow; self.go_ts_ms = Some(now_ms); self.phase_start_ms = now_ms; }
+
+    pub fn reset_match(&mut self, now_ms: u64) {
+        self.phase = DuelPhase::Standoff;
+        self.go_ts_ms = None;
+        self.phase_start_ms = now_ms;
+        self.delay_target_ms = None;
+        self.human_swipe = None;
+        self.ai_swipe = None;
+        self.round_results.clear();
+        self.round_meta.clear();
+        self.match_state = MatchState::InProgress;
+        self.human_score = 0;
+        self.ai_score = 0;
+        self.input_window_ms = INPUT_WINDOW_MS;
+        self.opening = pick_opening(&mut self.rng);
+    }
 }
 
 pub fn pick_opening(rng: &mut XorShift32) -> Opening {

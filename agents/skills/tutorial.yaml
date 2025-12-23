@@ -1,0 +1,80 @@
+I will begin by reading the existing skills in the `agents/skills/` directory to understand the expected format and structure for the new `iaido-tutorial` skill.
+I will read the `agents/skills/tutorial.yaml` file to use it as a template for the new tutorial skill.
+I will use the `cat` command to read the contents of `agents/skills/tutorial.yaml` to verify its structure.
+I will read the `agents/skills/audio_visual.yaml` file to compare its content and structure with the other skill files.
+name: iaido-tutorial
+version: 0.1.0
+description: >-
+  Implements a single tutorial duel for IAIDO. 
+  Guides the user to perform a swipe action upon hearing the audio cue.
+assumptions:
+  - The game uses the Bevy engine.
+  - The core gameplay loop (duel logic) is already implemented and can be instantiated for a tutorial state.
+  - Audio cues are functioning as per the `iaido-audio-visual` skill.
+prerequisites:
+  - rustc >= 1.75
+  - bevy >= 0.13
+  - Successful implementation of core duel logic and audio systems.
+non_goals:
+  - Guard mechanics explanation or tutorials.
+  - Multi-stage tutorials or complex branching.
+  - Persistent tutorial progress saving (MVP focus).
+  - UI buttons for skipping (action-based progression only).
+capabilities:
+  - tutorial_flow: Manage state transitions for the tutorial duel.
+  - overlay: Render instructional text "Swipe when you hear the sound." over the duel view.
+inputs:
+  events:
+    - GoCue: Trigger to start the tutorial's interactive window.
+    - Input(Swipe): User action to be validated.
+outputs:
+  - state_transition: Advance to the main game or restart tutorial on failure.
+  - visual: Text overlay rendering.
+environment:
+  vars:
+    RUST_LOG: "info,iaido_tutorial=debug"
+os_permissions: []
+tools:
+  - name: cargo
+    usage: cargo build
+commands:
+  run_tutorial_test:
+    description: Run the tutorial logic in isolation using the iaido example.
+    exec: cargo run --example iaido --features tutorial
+tasks:
+  - name: tutorial_state_setup
+    description: Define the Tutorial state in the app state machine.
+    steps:
+      - Add `Tutorial` variant to `GameState`.
+      - Implement a system to transition from `MainMenu` to `Tutorial`.
+  - name: instructional_ui
+    description: Implement the tutorial text overlay.
+    steps:
+      - Create a `TutorialUi` component.
+      - Spawn a text entity with "Swipe when you hear the sound." when entering `Tutorial` state.
+      - Ensure text is centered and clearly visible over silhouettes.
+  - name: tutorial_duel_logic
+    description: Special handling for the tutorial duel.
+    steps:
+      - Instantiate a `Duel` with a fixed, predictable timing for the `GoCue`.
+      - Wait for `GoCue` audio event.
+      - Listen for user swipe input.
+      - On successful swipe: Display "Success" and transition to main game after a delay.
+      - On failure (too early or too late): Reset the tutorial duel with a brief message.
+safety:
+  - simplicity: Tutorial must be foolproof; avoid any complex AI behavior.
+  - clarity: Instructional text must remain visible until the goal is achieved.
+observability:
+  - logging: Log tutorial start, user input timing relative to cue, and tutorial completion.
+validation:
+  - manual_check: Verify that the text "Swipe when you hear the sound." is displayed.
+  - manual_check: Verify that the tutorial restarts on failure.
+  - manual_check: Verify that the tutorial advances to the game on success.
+done:
+  criteria:
+    - Tutorial state is reachable.
+    - Instructional text is displayed.
+    - Audio cue triggers correctly within the tutorial context.
+    - Successful swipe leads to game start.
+rollback:
+  manual: Remove `Tutorial` state from `GameState` and delete tutorial-specific systems.

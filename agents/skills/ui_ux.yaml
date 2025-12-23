@@ -1,0 +1,66 @@
+name: iaido-ui-ux
+version: 0.1.0
+description: Implements a minimalist mobile-first UI/UX for Iaido, focusing on portrait orientation, immersive duels without HUD interference, and clear round/match progression.
+assumptions:
+  - The game engine is Bevy (based on bevy_iaido directory).
+  - A state machine exists to distinguish between 'Lobby', 'Onboarding', 'PreRound', 'Duel', and 'PostMatch'.
+  - Mobile touch input is handled via existing input systems.
+prerequisites:
+  - Functional combat logic in bevy_iaido.
+  - Assets for typography and basic UI elements.
+non_goals:
+  - Implementing 3D asset rendering or animation.
+  - Handling backend leaderboard synchronization.
+  - Localization for multiple languages.
+capabilities:
+  - Screen orientation management.
+  - State-aware UI visibility toggling.
+  - Dynamic text rendering for onboarding and round counts.
+  - Event-driven UI transitions.
+inputs:
+  - Screen dimensions and safe area insets.
+  - Current Round Number and Match State.
+  - User touch interactions.
+outputs:
+  - UI Overlay entities and systems.
+  - State transition triggers (e.g., Restart Match).
+environment:
+  - Rust/Cargo development environment.
+  - Mobile simulator or physical device for testing.
+os_permissions:
+  - Display/Window management.
+tools:
+  - bevy_ui crate.
+  - bevy_text crate.
+commands:
+  - cargo run --features mobile
+  - cargo test --lib ui
+tasks:
+  - name: setup_portrait_constraints
+    description: Configure window descriptor or camera to enforce/optimize for portrait aspect ratios.
+  - name: implement_onboarding_overlay
+    description: Create an initial "Tap to Begin" or "Swipe to Draw" text overlay that disappears once the first round starts.
+  - name: toggle_hud_visibility
+    description: Listen for Duel state changes to hide all UI elements during active combat to maximize immersion.
+  - name: implement_interstitial_round_count
+    description: Display a large "Round X" text during the 'PreRound' state with a fade-out effect.
+  - name: create_restart_menu
+    description: Implement a "Match Ended" screen with a prominent "Restart" button that resets the game state.
+safety:
+  - Ensure UI interactions do not trigger multiple state transitions simultaneously (debouncing).
+  - Verify UI scales correctly across different mobile resolutions (responsive layout).
+observability:
+  - Log UI state entries and exits.
+  - Trace touch event coordinates for UI collision debugging.
+validation:
+  - Verify HUD is 0% visible during the 'Duel' state.
+  - Ensure the 'Restart' button correctly resets the Round counter to 1.
+  - Confirm onboarding text is legible on high-DPI mobile screens.
+done:
+  - Game starts with onboarding text.
+  - HUD is absent during combat.
+  - Round transitions show round numbers.
+  - Match end allows for a full restart.
+rollback:
+  - Revert UI system changes via git.
+  - Restore previous camera/window configurations.
