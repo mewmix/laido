@@ -2,6 +2,11 @@ use crate::*;
 
 #[cfg(feature = "bevy")]
 use bevy::prelude::*;
+#[cfg(feature = "bevy")]
+use bevy::asset::AssetServer;
+
+#[cfg(feature = "bevy")]
+use bevy_kira_audio::prelude::*;
 
 #[cfg(feature = "bevy")]
 #[derive(Debug, Clone, Copy, Resource)]
@@ -50,8 +55,9 @@ impl Plugin for IaidoPlugin {
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
             .add_event::<ClashCue>()
-            .add_systems(Startup, (setup, setup_visuals))
-            .add_systems(Update, (update_time, read_input, drive_ai, advance_duel, react_outcomes, update_visuals));
+            .add_plugins(bevy_kira_audio::AudioPlugin)
+            .add_systems(Startup, (setup, setup_visuals, setup_audio))
+            .add_systems(Update, (update_time, read_input, drive_ai, advance_duel, react_outcomes, update_visuals, react_audio));
     }
 }
 
@@ -86,6 +92,30 @@ fn setup_visuals(mut commands: Commands) {
     commands.spawn((Sprite::from_color(Color::GRAY), Transform::from_xyz(-150.0, 0.0, 0.0), HumanSilhouette));
     commands.spawn((Sprite::from_color(Color::GRAY), Transform::from_xyz(150.0, 0.0, 0.0), AiSilhouette));
     commands.insert_resource(VisualFlash::default());
+}
+
+// Audio setup and reactions
+#[cfg(feature = "bevy")]
+#[derive(Resource, Default)]
+struct AudioHandles {
+    wind: Option<Handle<AudioSource>>,
+    go: Option<Handle<AudioSource>>,
+    draw: Option<Handle<AudioSource>>,
+    hit: Option<Handle<AudioSource>>,
+    clash: Option<Handle<AudioSource>>,
+}
+
+#[cfg(feature = "bevy")]
+fn setup_audio(mut commands: Commands, assets: Res<AssetServer>, audio: Res<Audio>) {
+    // Attempt to load; missing assets are acceptable (silent fallback)
+    let wind = assets.load::<AudioSource>("audio/wind.ogg");
+    let go = assets.load::<AudioSource>("audio/go.ogg");
+    let draw = assets.load::<AudioSource>("audio/draw.ogg");
+    let hit = assets.load::<AudioSource>("audio/hit.ogg");
+    let clash = assets.load::<AudioSource>("audio/clash.ogg");
+    commands.insert_resource(AudioHandles { wind: Some(wind.clone()), go: Some(go), draw: Some(draw), hit: Some(hit), clash: Some(clash) });
+    // Start wind loop quietly
+    audio.play(wind).with_volume(0.2).looped();
 }
 
 #[cfg(feature = "bevy")]
@@ -202,5 +232,26 @@ fn update_visuals(
     }
     if let Ok(mut s) = ais.get_single_mut() {
         s.color = if vf.ai_ms > 0 { Color::RED } else { base };
+    }
+}
+
+#[cfg(feature = "bevy")]
+fn react_audio(
+    mut go_rx: EventReader<GoCue>,
+    mut slash_rx: EventReader<SlashCue>,
+    mut clash_rx: EventReader<ClashCue>,
+    handles: Res<AudioHandles>,
+    audio: Res<Audio>,
+) {
+    for _ in go_rx.read() {
+        if let Some(h) = &handles.go { audio.play(h.clone()); }
+    }
+    for e in slash_rx.read() {
+        // Draw + hit sequence
+        if let Some(d) = &handles.draw { audio.play(d.clone()); }
+        if let Some(h) = &handles.hit { audio.play(h.clone()); }
+    }
+    for _ in clash_rx.read() {
+        if let Some(c) = &handles.clash { audio.play(c.clone()); }
     }
 }

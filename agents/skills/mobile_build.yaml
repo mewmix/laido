@@ -1,0 +1,102 @@
+name: iaido-mobile-build
+version: 0.1.0
+description: Automates minimal, deterministic build pipelines for IAIDO MVP on iOS and Android using Bevy. Enforces portrait mode, high refresh rates, and strictly scoped permissions.
+assumptions:
+  - Rust toolchain is installed and active.
+  - Project uses Bevy 0.14+ or compatible for mobile support.
+  - Android SDK and NDK are installed (default: /Users/luisocampo/Library/Android/sdk).
+  - Xcode command line tools are available.
+  - Physical devices are connected for deployment/validation.
+prerequisites:
+  - rustup target add aarch64-linux-android armv7-linux-androideabi aarch64-apple-ios
+  - cargo install cargo-apk cargo-bundle
+  - Valid Apple Developer signing identity (for iOS device run).
+non_goals:
+  - App Store/Play Store release management (TestFlight, alpha tracks).
+  - Cloud CI/CD pipeline integration.
+  - Cross-platform multiplayer network debugging (build only).
+capabilities:
+  - Configure Bevy WindowPlugin for mobile constraints (Portrait, VSync/PresentMode).
+  - Generate and patch AndroidManifest.xml and Info.plist.
+  - Compile optimized release artifacts (.apk, .app).
+  - Deploy and launch on local physical devices.
+inputs:
+  - target_platform: [ios, android]
+  - build_profile: [debug, release]
+  - bundle_identifier: string
+outputs:
+  - android_artifact_path: ./target/release/apk/iaido.apk
+  - ios_artifact_path: ./target/aarch64-apple-ios/release/bundle/ios/iaido.app
+  - build_metadata: JSON object with size and timestamp.
+environment:
+  ANDROID_HOME: /Users/luisocampo/Library/Android/sdk
+  NDK_HOME: ${ANDROID_HOME}/ndk/<latest>
+  RUST_LOG: info,iaido=debug
+os_permissions:
+  - file_write: ./target
+  - usb_access: adb, ios-deploy
+platform_entitlements:
+  android:
+    permissions:
+      - android.permission.INTERNET
+    attributes:
+      - android:usesCleartextTraffic="false"
+      - android:screenOrientation="portrait"
+  ios:
+    keys:
+      - NSAppTransportSecurity: { NSAllowsArbitraryLoads: false }
+      - UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+      - UIRequiresFullScreen: true
+tools:
+  - cargo
+  - cargo-apk
+  - cargo-bundle
+  - adb
+  - xcodebuild
+  - ios-deploy
+commands:
+  setup_env:
+    - rustup target add aarch64-linux-android aarch64-apple-ios
+  config_bevy:
+    - Replace WindowPlugin config to force PresentMode::AutoNoVsync or Mailbox for 120Hz.
+  build_android:
+    - cargo apk build --release
+  build_ios:
+    - cargo build --target aarch64-apple-ios --release
+    - cargo bundle --target aarch64-apple-ios --release
+  deploy_android:
+    - adb install -r target/release/apk/iaido.apk
+    - adb shell am start -n <package_name>/android.app.NativeActivity
+tasks:
+  - name: Validate Environment
+    description: Check SDK paths and Rust targets.
+  - name: Configure Manifests
+    description: Inject permissions and portrait-only constraints.
+  - name: Build Artifact
+    description: Compile Rust code to native library and package.
+  - name: Sign Artifact
+    description: Apply debug keystore (Android) or dev identity (iOS).
+  - name: Deploy & Launch
+    description: Push to device and force start.
+  - name: Validation Check
+    description: Verify startup constraints.
+safety:
+  - Deterministic dependency resolution (Cargo.lock).
+  - No telemetry or analytics SDKs included.
+  - Networking restricted to verified endpoints (if any); blocked in duel loop.
+observability:
+  - Capture build duration and artifact size.
+  - Stream logs via `adb logcat -s "RustStdout" "RustStderr"` or Xcode console.
+validation:
+  - Startup time <= 2.0s (cold start).
+  - Orientation locked to Portrait.
+  - Swipe input registered in logs.
+  - "GO" audio cue audible on start.
+  - Rendering target: 120 FPS (or device max).
+  - Silhouettes visible.
+done:
+  - Build artifact present in output directory.
+  - App running on device with logs streaming.
+rollback:
+  - cargo clean
+  - git checkout Cargo.toml AndroidManifest.xml Info.plist
