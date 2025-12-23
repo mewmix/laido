@@ -13,3 +13,8 @@
 - agents/skills/mobile_build.yaml
 - assets/README.md
 - bevy_iaido/src/plugin.rs
+
+## Tests
+- Ran: `cargo test --manifest-path bevy_iaido/Cargo.toml --no-default-features --lib`
+- Ran: `cargo test --manifest-path bevy_iaido/Cargo.toml --no-default-features --tests`
+- Result: core logic tests passed (combat, timing, input, replay).
