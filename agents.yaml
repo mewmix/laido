@@ -1,0 +1,5 @@
+agents:
+  - name: gemini
+    description: Sub-agent using the Gemini CLI
+    command: gemini
+    args: []

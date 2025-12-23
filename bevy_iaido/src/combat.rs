@@ -1,51 +1,39 @@
-use crate::types::{Opening, RoundOutcome, SwipeDir};
+use crate::types::{Direction, Opening, Outcome};
 
-pub fn correct_for(opening: Opening) -> SwipeDir {
+pub fn correct_direction_for(opening: Opening) -> Direction {
     match opening {
-        Opening::HighGuard => SwipeDir::Down,
-        Opening::LowGuard => SwipeDir::Up,
-        Opening::LeftGuard => SwipeDir::Right,
-        Opening::RightGuard => SwipeDir::Left,
+        Opening::HighGuard => Direction::Down,
+        Opening::LowGuard => Direction::Up,
+        Opening::LeftGuard => Direction::Right,
+        Opening::RightGuard => Direction::Left,
     }
 }
 
-pub fn is_correct(opening: Opening, dir: SwipeDir) -> bool {
-    correct_for(opening) == dir
-}
-
-pub struct Resolution {
-    pub outcome: RoundOutcome,
-    pub is_clash: bool,
-}
-
-pub fn resolve(
+pub fn judge_outcome(
     opening: Opening,
-    player_dir: SwipeDir,
-    ai_dir: SwipeDir,
-    player_rt_ms: i32,
-    ai_rt_ms: i32,
-    equal_tolerance_ms: i32,
-) -> Resolution {
-    let p_correct = is_correct(opening, player_dir);
-    let a_correct = is_correct(opening, ai_dir);
+    human_dir: Option<Direction>,
+    ai_dir: Option<Direction>,
+    human_react_ms: Option<u64>,
+    ai_react_ms: Option<u64>,
+    tie_window_ms: u64,
+) -> Outcome {
+    let correct = correct_direction_for(opening);
 
-    if !p_correct && a_correct {
-        return Resolution { outcome: RoundOutcome::AIWin, is_clash: false };
+    if let Some(dir) = human_dir {
+        if dir != correct { return Outcome::WrongHuman; }
     }
-    if !a_correct && p_correct {
-        return Resolution { outcome: RoundOutcome::PlayerWin, is_clash: false };
-    }
-    if !p_correct && !a_correct {
-        return Resolution { outcome: RoundOutcome::Timeout, is_clash: false };
+    if let Some(dir) = ai_dir {
+        if dir != correct { return Outcome::WrongAi; }
     }
 
-    let diff = player_rt_ms - ai_rt_ms;
-    if diff > equal_tolerance_ms {
-        Resolution { outcome: RoundOutcome::AIWin, is_clash: false }
-    } else if diff < -equal_tolerance_ms {
-        Resolution { outcome: RoundOutcome::PlayerWin, is_clash: false }
-    } else {
-        Resolution { outcome: RoundOutcome::Clash, is_clash: true }
+    match (human_react_ms, ai_react_ms) {
+        (Some(h), Some(a)) => {
+            if h + tie_window_ms < a { Outcome::HumanWin }
+            else if a + tie_window_ms < h { Outcome::AiWin }
+            else { Outcome::Clash }
+        }
+        (Some(_), None) => Outcome::HumanWin,
+        (None, Some(_)) => Outcome::AiWin,
+        (None, None) => Outcome::Clash,
     }
 }
-

@@ -1,65 +1,29 @@
-#[derive(Debug, Clone)]
-pub struct TimingConfig {
-    pub delay_min_ms: u64,
-    pub delay_max_ms: u64,
-    pub input_window_ms: u64,
-    pub clash_input_window_ms: u64,
-    pub clash_delay_min_ms: u64,
-    pub clash_delay_max_ms: u64,
-    pub result_flash_ms: u64,
-    pub next_round_ms: u64,
-    pub min_swipe_distance_mm: f32,
-    pub direction_lock_ms: u64,
-    pub equal_tolerance_ms: i32,
+use core::time::Duration;
 
-    pub novice_mean_ms: i32,
-    pub novice_wrong_pct: f32,
-    pub skilled_mean_ms: i32,
-    pub skilled_wrong_pct: f32,
-    pub master_mean_ms: i32,
-    pub master_wrong_pct: f32,
+// Timing constants (monotonic, deterministic)
+pub const RANDOM_DELAY_MIN_MS: u64 = 600;
+pub const RANDOM_DELAY_MAX_MS: u64 = 1400;
+pub const INPUT_WINDOW_MS: u64 = 120;
+
+pub const CLASH_DELAY_MIN_MS: u64 = 300;
+pub const CLASH_DELAY_MAX_MS: u64 = 600;
+pub const CLASH_INPUT_WINDOW_MS: u64 = 80;
+
+pub const DIRECTION_LOCK_MS: u64 = 20; // lock after ~20ms of motion
+pub const TIE_WINDOW_MS: u64 = 5; // ±5ms considered equal
+
+// Match config
+pub const ROUNDS_TO_WIN: u8 = 2; // best of 3
+
+// Input thresholds
+// Minimum swipe distance in millimeters; scale by device DPI
+pub const MIN_SWIPE_MM: f32 = 7.0; // between 6–8 mm
+
+// Utility to convert mm to pixels given DPI (dots per inch)
+// 1 inch = 25.4 mm
+pub fn mm_to_px(mm: f32, dpi: f32) -> f32 {
+    let inches = mm / 25.4;
+    inches * dpi
 }
 
-impl Default for TimingConfig {
-    fn default() -> Self {
-        Self {
-            delay_min_ms: 600,
-            delay_max_ms: 1400,
-            input_window_ms: 120,
-            clash_input_window_ms: 80,
-            clash_delay_min_ms: 300,
-            clash_delay_max_ms: 600,
-            result_flash_ms: 300,
-            next_round_ms: 500,
-            min_swipe_distance_mm: 7.0,
-            direction_lock_ms: 20,
-            equal_tolerance_ms: 5,
-            novice_mean_ms: 280,
-            novice_wrong_pct: 0.15,
-            skilled_mean_ms: 190,
-            skilled_wrong_pct: 0.05,
-            master_mean_ms: 140,
-            master_wrong_pct: 0.0,
-        }
-    }
-}
-
-// Device metrics used to convert mm→px
-#[derive(Debug, Clone)]
-pub struct DeviceMetrics {
-    pub ppi: f32, // default 160 PPI if unknown
-}
-
-impl Default for DeviceMetrics {
-    fn default() -> Self {
-        Self { ppi: 160.0 }
-    }
-}
-
-impl DeviceMetrics {
-    pub fn mm_to_px(&self, mm: f32) -> f32 {
-        // 1 inch = 25.4 mm
-        (mm * self.ppi) / 25.4
-    }
-}
-
+pub fn ms(ms: u64) -> Duration { Duration::from_millis(ms) }

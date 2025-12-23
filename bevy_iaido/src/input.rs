@@ -1,88 +1,84 @@
-use bevy::input::mouse::MouseButtonInput;
-use bevy::input::touch::Touches;
-use bevy::prelude::*;
+use crate::config::{mm_to_px, MIN_SWIPE_MM, DIRECTION_LOCK_MS};
+use crate::types::Direction;
 
-use crate::config::DeviceMetrics;
-use crate::types::SwipeDir;
+#[derive(Copy, Clone, Debug, Default)]
+pub struct SwipeSample {
+    pub dt_ms: u64,
+    pub dx: f32,
+    pub dy: f32,
+}
 
-#[derive(Resource, Default, Debug, Clone)]
-pub struct SwipeState {
-    pub tracking: bool,
+#[derive(Copy, Clone, Debug)]
+pub struct SwipeConfig {
+    pub dpi: f32,
+}
+
+impl SwipeConfig {
+    pub fn min_distance_px(&self) -> f32 { mm_to_px(MIN_SWIPE_MM, self.dpi) }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SwipeState { Idle, Moving, Locked }
+
+#[derive(Copy, Clone, Debug)]
+pub struct SwipeDetector {
+    pub state: SwipeState,
+    pub lock_dir: Option<Direction>,
+    pub elapsed_ms: u64,
+    pub accum_dx: f32,
+    pub accum_dy: f32,
     pub committed: bool,
-    pub committed_dir: SwipeDir,
-    pub start_pos: Vec2,
-    pub start_time: f64,
 }
 
-impl SwipeState {
+impl SwipeDetector {
+    pub fn new() -> Self {
+        Self { state: SwipeState::Idle, lock_dir: None, elapsed_ms: 0, accum_dx: 0.0, accum_dy: 0.0, committed: false }
+    }
+
     pub fn reset(&mut self) {
-        self.tracking = false;
+        self.state = SwipeState::Idle;
+        self.lock_dir = None;
+        self.elapsed_ms = 0;
+        self.accum_dx = 0.0;
+        self.accum_dy = 0.0;
         self.committed = false;
-        self.committed_dir = SwipeDir::None;
     }
-    pub fn begin(&mut self, start_pos: Vec2, time: f64) {
-        self.tracking = true;
-        self.committed = false;
-        self.committed_dir = SwipeDir::None;
-        self.start_pos = start_pos;
-        self.start_time = time;
-    }
-}
 
-pub struct InputPlugin;
+    pub fn update(&mut self, cfg: &SwipeConfig, sample: SwipeSample) -> Option<Direction> {
+        match self.state {
+            SwipeState::Idle => {
+                if sample.dx != 0.0 || sample.dy != 0.0 {
+                    self.state = SwipeState::Moving;
+                }
+            }
+            SwipeState::Moving => {
+                self.elapsed_ms += sample.dt_ms;
+                self.accum_dx += sample.dx;
+                self.accum_dy += sample.dy;
 
-impl Plugin for InputPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(SwipeState::default());
-    }
-}
-
-pub fn current_pointer_pos(windows: &Query<&Window>) -> Vec2 {
-    if let Ok(win) = windows.get_single() {
-        if let Some(pos) = win.cursor_position() {
-            return pos;
+                if !self.committed && self.elapsed_ms >= DIRECTION_LOCK_MS {
+                    self.lock_dir = Some(primary_direction(self.accum_dx, self.accum_dy));
+                    self.committed = true;
+                }
+                if self.committed {
+                    let dist2 = self.accum_dx * self.accum_dx + self.accum_dy * self.accum_dy;
+                    let min = cfg.min_distance_px();
+                    if dist2 >= min * min {
+                        self.state = SwipeState::Locked;
+                        return self.lock_dir;
+                    }
+                }
+            }
+            SwipeState::Locked => {}
         }
+        None
     }
-    Vec2::ZERO
 }
 
-pub fn classify(delta: Vec2) -> SwipeDir {
-    if delta.length_squared() == 0.0 { return SwipeDir::None; }
-    if delta.x.abs() > delta.y.abs() {
-        if delta.x > 0.0 { SwipeDir::Right } else { SwipeDir::Left }
+pub fn primary_direction(dx: f32, dy: f32) -> Direction {
+    if dx.abs() > dy.abs() {
+        if dx > 0.0 { Direction::Right } else { Direction::Left }
     } else {
-        if delta.y > 0.0 { SwipeDir::Up } else { SwipeDir::Down }
+        if dy > 0.0 { Direction::Up } else { Direction::Down }
     }
 }
-
-pub fn poll_swipe(
-    windows: &Query<&Window>,
-    touches: &Res<Touches>,
-    metrics: &Res<DeviceMetrics>,
-    direction_lock_ms: u64,
-    min_swipe_mm: f32,
-    now: f64,
-    swipe: &mut ResMut<SwipeState>,
-) -> SwipeDir {
-    if !swipe.tracking { return SwipeDir::None; }
-
-    // Determine current pointer position: prefer touch
-    let mut current = None;
-    for t in touches.iter() {
-        current = Some(t.position());
-        break;
-    }
-    let current = current.unwrap_or_else(|| current_pointer_pos(windows));
-    let delta = current - swipe.start_pos;
-
-    if !swipe.committed {
-        let dt_ms = ((now - swipe.start_time) * 1000.0) as u64;
-        let threshold_px = metrics.mm_to_px(min_swipe_mm);
-        if dt_ms >= direction_lock_ms || delta.length() >= threshold_px {
-            swipe.committed_dir = classify(delta);
-            swipe.committed = true;
-        }
-    }
-    if swipe.committed { swipe.committed_dir } else { SwipeDir::None }
-}
-

@@ -1,30 +1,48 @@
-# IAIDO (MVP) — Bevy Framework
+BEVVY: IAIDO — MVP Core (Bevy)
 
-What’s here
-- Deterministic duel loop (best-of-3) as Bevy systems.
-- Swipe-only input (UP/DOWN/LEFT/RIGHT) with DPI-scaled thresholds.
-- Authoritative timing with monotonic clock (unscaled), GO and input timestamps.
-- Combat resolver (openings matrix) and AI profiles.
-- JSON match logs for deterministic replay.
-- Minimal view/audio hooks via events.
+Purpose: deterministic, ultra-fast directional duel core for mobile.
 
-Run (desktop)
-- `cargo run -p bevy_iaido`
+- One-thumb swipe input (UP/DOWN/LEFT/RIGHT)
+- Hidden delay (600–1400 ms), GO, 120 ms input window
+- Wrong direction = instant loss; correct compares reaction time; ±5 ms = CLASH
+- Clash rematch: 300–600 ms delay, 80 ms window
+- Best of 3. No HUD during duel. Minimal hooks for audio/visual.
 
-Replay a saved log
-- `cargo run -p bevy_iaido -- --replay replays/iaido_log_<seed>.json`
+Modules
+- config: Tunable constants and time helpers.
+- types: Directions, openings, outcomes, phases, events.
+- rng: XorShift32 deterministic RNG.
+- input: Swipe detector with DPI scaling and 20 ms direction lock.
+- combat: Mapping from opening→truth and outcome judge.
+- state_machine: Authoritative duel state machine and match rules.
+- ai: Novice/Skilled/Master profiles; reaction planner.
+- logging: JSON round/match logs and deterministic replayer.
+- plugin (feature "bevy"): Minimal Bevy plugin wiring input, AI, and events.
 
-Mobile notes
-- Add platform build toolchains (iOS/Android) and assets as needed.
-- Target high refresh rate if available; Bevy’s time is monotonic by default.
+Bevy Usage (desktop dev)
+- Insert IaidoSettings { seed, dpi } and add IaidoPlugin.
+- Subscribe to GoCue, SlashCue { actor }, ClashCue for feedback hooks.
 
-Key files
-- `src/main.rs` — App setup, plugins.
-- `src/types.rs` — Enums and types.
-- `src/config.rs` — Timing constants and device metrics.
-- `src/input.rs` — Swipe detector.
-- `src/combat.rs` — Openings + resolver.
-- `src/ai.rs` — AI agent.
-- `src/duel.rs` — State machine systems and logging integration.
-- `src/logging.rs` — JSON replay logs.
-- `src/events.rs` — Minimal event hooks for visuals/audio.
+Determinism & Logs
+- DuelMachine uses monotonic time in ms and fixed transitions.
+- DuelLog and MatchLog serialize to JSON; replay_round verifies outcome.
+- Opening seed and GO timestamp are recorded to reproduce exactly.
+
+Input
+- SwipeDetector locks direction after ~20 ms of motion.
+- Minimum distance is scaled by DPI; default 7 mm.
+
+AI
+- Profiles: Novice (280 ms, 15%), Skilled (190 ms, 5%), Master (140 ms, 0%).
+- AI plans reaction on GO; never inputs before GO; respects input window.
+
+Mobile Notes
+- Portrait; target 120 FPS. Keep allocations out of the duel path.
+- Audio/visual assets not included; hook to plugin events.
+
+Build
+- Requires Rust and Bevy 0.14.
+- Example: cargo run --example iaido (desktop). For mobile, integrate with your runner.
+
+Definition of Done (MVP)
+- New players understand in <30s; hesitation loses; players replay; timing variance matters; log replay deterministic.

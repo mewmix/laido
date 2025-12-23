@@ -1,0 +1,205 @@
+use core::time::Duration;
+
+use crate::combat::{correct_direction_for, judge_outcome};
+use crate::config::*;
+use crate::rng::XorShift32;
+use crate::types::*;
+
+#[derive(Clone, Debug)]
+pub struct DuelConfig {
+    pub seed: u32,
+    pub clash: bool,
+}
+
+impl Default for DuelConfig {
+    fn default() -> Self { Self { seed: 0xA1D0_5EED, clash: true } }
+}
+
+#[derive(Clone, Debug)]
+pub struct DuelMachine {
+    pub phase: DuelPhase,
+    pub rng: XorShift32,
+    pub opening: Opening,
+    pub go_ts_ms: Option<u64>,
+    pub phase_start_ms: u64,
+    pub delay_target_ms: Option<u64>,
+    pub human_swipe: Option<SwipeEvent>,
+    pub ai_swipe: Option<SwipeEvent>,
+    pub round_results: Vec<RoundResult>,
+    pub match_state: MatchState,
+    pub human_score: u8,
+    pub ai_score: u8,
+    pub input_window_ms: u64,
+}
+
+impl DuelMachine {
+    pub fn new(cfg: DuelConfig, start_ms: u64) -> Self {
+        let mut rng = XorShift32::new(cfg.seed);
+        let opening = pick_opening(&mut rng);
+        Self {
+            phase: DuelPhase::Standoff,
+            rng,
+            opening,
+            go_ts_ms: None,
+            phase_start_ms: start_ms,
+            delay_target_ms: None,
+            human_swipe: None,
+            ai_swipe: None,
+            round_results: Vec::with_capacity(3),
+            match_state: MatchState::InProgress,
+            human_score: 0,
+            ai_score: 0,
+            input_window_ms: INPUT_WINDOW_MS,
+        }
+    }
+
+    pub fn current_opening(&self) -> Opening { self.opening }
+
+    pub fn schedule_go_delay(&mut self) -> u64 {
+        self.rng.range_u64(RANDOM_DELAY_MIN_MS, RANDOM_DELAY_MAX_MS)
+    }
+
+    pub fn schedule_clash_delay(&mut self) -> u64 {
+        self.rng.range_u64(CLASH_DELAY_MIN_MS, CLASH_DELAY_MAX_MS)
+    }
+
+    pub fn start_round(&mut self, now_ms: u64) { self.enter_random_delay(now_ms, false); }
+
+    fn enter_random_delay(&mut self, now_ms: u64, clash: bool) {
+        self.phase = DuelPhase::RandomDelay;
+        self.phase_start_ms = now_ms;
+        self.go_ts_ms = None;
+        self.human_swipe = None;
+        self.ai_swipe = None;
+        self.input_window_ms = if clash { CLASH_INPUT_WINDOW_MS } else { INPUT_WINDOW_MS };
+        self.opening = pick_opening(&mut self.rng);
+        let delay = if clash { self.schedule_clash_delay() } else { self.schedule_go_delay() };
+        self.delay_target_ms = Some(now_ms + delay);
+    }
+
+    pub fn tick(&mut self, now_ms: u64) {
+        match self.phase {
+            DuelPhase::Standoff => {
+                self.start_round(now_ms);
+            }
+            DuelPhase::RandomDelay => {
+                if let Some(target) = self.delay_target_ms {
+                    if now_ms >= target {
+                        self.phase = DuelPhase::GoSignal;
+                        self.go_ts_ms = Some(now_ms);
+                        self.phase_start_ms = now_ms;
+                        self.delay_target_ms = None;
+                    }
+                }
+            }
+            DuelPhase::GoSignal => {
+                self.phase = DuelPhase::InputWindow;
+                self.phase_start_ms = now_ms;
+            }
+            DuelPhase::InputWindow => {
+                if now_ms - self.phase_start_ms >= self.input_window_ms {
+                    self.phase = DuelPhase::Resolution;
+                }
+            }
+            DuelPhase::Resolution => {
+                let outcome = self.resolve(now_ms);
+                self.apply_outcome(outcome);
+                self.phase = DuelPhase::ResultFlash;
+                self.phase_start_ms = now_ms;
+            }
+            DuelPhase::ResultFlash => {
+                if now_ms - self.phase_start_ms >= 300 { // ≤300 ms flash
+                    self.phase = DuelPhase::NextRound;
+                    self.phase_start_ms = now_ms;
+                }
+            }
+            DuelPhase::NextRound => {
+                if self.match_state != MatchState::InProgress {
+                    self.phase = DuelPhase::Finished;
+                } else if now_ms - self.phase_start_ms >= 500 { // ≤500 ms reset
+                    self.enter_random_delay(now_ms, false);
+                }
+            }
+            DuelPhase::Finished | DuelPhase::Reset => {}
+        }
+    }
+
+    pub fn on_swipe(&mut self, actor: Actor, dir: Direction, ts_ms: u64) {
+        // Any swipe before GO is instant loss for that actor
+        if self.go_ts_ms.is_none() {
+            let outcome = match actor {
+                Actor::Human => Outcome::EarlyHuman,
+                Actor::Ai => Outcome::EarlyAi,
+            };
+            self.round_results.push(RoundResult { opening: self.opening, outcome, human_reaction_ms: None, ai_reaction_ms: None });
+            self.phase = DuelPhase::ResultFlash;
+            self.phase_start_ms = ts_ms;
+            match actor { Actor::Human => self.ai_score += 1, Actor::Ai => self.human_score += 1 }
+            ;
+            self.update_match_state();
+            return;
+        }
+
+        if self.phase != DuelPhase::InputWindow { return; }
+        let go = self.go_ts_ms.unwrap();
+        if ts_ms < go { return; }
+        if ts_ms - go > self.input_window_ms { return; }
+        let ev = SwipeEvent { dir, ts_ms };
+        match actor {
+            Actor::Human => if self.human_swipe.is_none() { self.human_swipe = Some(ev); },
+            Actor::Ai => if self.ai_swipe.is_none() { self.ai_swipe = Some(ev); },
+        }
+    }
+
+    fn resolve(&mut self, _now_ms: u64) -> Outcome {
+        let go = self.go_ts_ms.unwrap_or(self.phase_start_ms);
+        let human_dir = self.human_swipe.as_ref().map(|e| e.dir);
+        let ai_dir = self.ai_swipe.as_ref().map(|e| e.dir);
+        let human_r = self.human_swipe.as_ref().map(|e| e.ts_ms - go);
+        let ai_r = self.ai_swipe.as_ref().map(|e| e.ts_ms - go);
+        let outcome = judge_outcome(
+            self.opening,
+            human_dir,
+            ai_dir,
+            human_r,
+            ai_r,
+            TIE_WINDOW_MS,
+        );
+        self.round_results.push(RoundResult {
+            opening: self.opening,
+            outcome,
+            human_reaction_ms: human_r.map(|v| v as u32),
+            ai_reaction_ms: ai_r.map(|v| v as u32),
+        });
+        outcome
+    }
+
+    fn apply_outcome(&mut self, outcome: Outcome) {
+        match outcome {
+            Outcome::HumanWin | Outcome::WrongAi | Outcome::EarlyAi => self.human_score += 1,
+            Outcome::AiWin | Outcome::WrongHuman | Outcome::EarlyHuman => self.ai_score += 1,
+            Outcome::Clash => {
+                // Immediate rematch with reduced delay/window
+                let now_ms = self.phase_start_ms;
+                self.enter_random_delay(now_ms, true);
+                return;
+            }
+        }
+        self.update_match_state();
+    }
+
+    fn update_match_state(&mut self) {
+        if self.human_score >= ROUNDS_TO_WIN { self.match_state = MatchState::HumanWon; }
+        else if self.ai_score >= ROUNDS_TO_WIN { self.match_state = MatchState::AiWon; }
+        else { self.match_state = MatchState::InProgress; }
+    }
+}
+
+pub fn pick_opening(rng: &mut XorShift32) -> Opening {
+    match rng.next_u32() % 4 {
+        0 => Opening::HighGuard,
+        1 => Opening::LowGuard,
+        2 => Opening::LeftGuard,
+        _ => Opening::RightGuard,
+    }
+}
