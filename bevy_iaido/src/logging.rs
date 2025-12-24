@@ -33,18 +33,16 @@ pub enum ReplayError { OutcomeMismatch, OpeningMismatch }
 
 pub fn replay_round(log: &DuelLog) -> Result<(), ReplayError> {
     use crate::state_machine::{DuelConfig, DuelMachine};
-    let mut dm = DuelMachine::new(DuelConfig { seed: log.seed, clash: true }, log.go.ts_ms.saturating_sub(1000));
+    let mut dm = DuelMachine::new(DuelConfig { seed: log.seed, clash: true }, log.go.ts_ms);
     // Force opening identity to match
     if dm.opening != log.opening { return Err(ReplayError::OpeningMismatch); }
-    // Advance to GO
-    dm.tick(log.go.ts_ms);
-    // Move into input window
-    dm.tick(log.go.ts_ms);
-    // Feed human
+    // Force into input window at GO
+    dm.open_input(log.go.ts_ms);
+    // Feed inputs
     if let Some(h) = &log.human { dm.on_swipe(Actor::Human, h.dir, h.ts_ms); }
     if let Some(a) = &log.ai { dm.on_swipe(Actor::Ai, a.dir, a.ts_ms); }
-    // Close window and resolve
-    dm.tick(log.go.ts_ms + 2000);
+    // Resolve immediately after window
+    dm.tick(log.go.ts_ms + 1000);
     let last = dm.round_results.last().expect("round result exists");
     if last.outcome != log.outcome { return Err(ReplayError::OutcomeMismatch); }
     Ok(())

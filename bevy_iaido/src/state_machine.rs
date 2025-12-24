@@ -102,7 +102,11 @@ impl DuelMachine {
             }
             DuelPhase::InputWindow => {
                 if now_ms - self.phase_start_ms >= self.input_window_ms {
-                    self.phase = DuelPhase::Resolution;
+                    // Resolve immediately at window end to avoid extra frame dependency
+                    let outcome = self.resolve(now_ms);
+                    self.apply_outcome(outcome);
+                    self.phase = DuelPhase::ResultFlash;
+                    self.phase_start_ms = now_ms;
                 }
             }
             DuelPhase::Resolution => {
@@ -130,11 +134,20 @@ impl DuelMachine {
 
     pub fn on_swipe(&mut self, actor: Actor, dir: Direction, ts_ms: u64) {
         // Any swipe before GO is instant loss for that actor
-        if self.go_ts_ms.is_none() {
-            let outcome = match actor {
-                Actor::Human => Outcome::EarlyHuman,
-                Actor::Ai => Outcome::EarlyAi,
-            };
+        if let Some(go) = self.go_ts_ms {
+            if ts_ms < go {
+                let outcome = match actor { Actor::Human => Outcome::EarlyHuman, Actor::Ai => Outcome::EarlyAi };
+                self.round_results.push(RoundResult { opening: self.opening, outcome, human_reaction_ms: None, ai_reaction_ms: None });
+                self.phase = DuelPhase::ResultFlash;
+                self.phase_start_ms = ts_ms;
+                match actor { Actor::Human => self.ai_score += 1, Actor::Ai => self.human_score += 1 }
+                ;
+                self.update_match_state();
+                return;
+            }
+        } else {
+            // GO not scheduled yet => early
+            let outcome = match actor { Actor::Human => Outcome::EarlyHuman, Actor::Ai => Outcome::EarlyAi };
             self.round_results.push(RoundResult { opening: self.opening, outcome, human_reaction_ms: None, ai_reaction_ms: None });
             self.phase = DuelPhase::ResultFlash;
             self.phase_start_ms = ts_ms;
@@ -146,7 +159,6 @@ impl DuelMachine {
 
         if self.phase != DuelPhase::InputWindow { return; }
         let go = self.go_ts_ms.unwrap();
-        if ts_ms < go { return; }
         if ts_ms - go > self.input_window_ms { return; }
         let ev = SwipeEvent { dir, ts_ms };
         match actor {

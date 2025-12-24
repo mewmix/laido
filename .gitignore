@@ -1,0 +1,5 @@
+# Ignore Rust build artifacts
+**/target/
+
+# macOS
+.DS_Store
