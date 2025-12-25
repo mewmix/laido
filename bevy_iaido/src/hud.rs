@@ -29,29 +29,42 @@ struct RoundIndicator {
 }
 
 fn setup_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font_handle = {
+        let font_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/fonts/FiraSans-Bold.ttf");
+        if font_path.exists() {
+            asset_server.load("fonts/FiraSans-Bold.ttf")
+        } else {
+            Handle::default()
+        }
+    };
+
     // Onboarding Text: "Swipe when you hear the sound."
     // Centered, Z=5 (Global Z via Style is implied on top, but we can set ZIndex)
     commands.spawn((
-        TextBundle::from_section(
-            "Swipe when you hear the sound.",
-            TextStyle {
-                font: asset_server.load("fonts/FiraSans-Bold.ttf"), // Assuming default bevy font or placeholder
-                font_size: 40.0,
-                color: Color::WHITE,
+        TextBundle {
+            text: Text::from_section(
+                "Swipe when you hear the sound.",
+                TextStyle {
+                    font: font_handle,
+                    font_size: 40.0,
+                    color: Color::WHITE,
+                },
+            )
+            .with_justify(JustifyText::Center),
+            style: Style {
+                position_type: PositionType::Absolute,
+                align_self: AlignSelf::Center,
+                justify_self: JustifySelf::Center,
+                left: Val::Auto,
+                right: Val::Auto,
+                top: Val::Percent(20.0), // Slightly above center
+                ..default()
             },
-        )
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            align_self: AlignSelf::Center,
-            justify_self: JustifySelf::Center,
-            left: Val::Auto,
-            right: Val::Auto,
-            top: Val::Percent(20.0), // Slightly above center
+            z_index: ZIndex::Global(5),
             ..default()
-        })
-        .with_text_justify(JustifyText::Center),
+        },
         OnboardingText,
-        ZIndex::Global(5),
     ));
 
     // Between-round overlay: 3 small bars.

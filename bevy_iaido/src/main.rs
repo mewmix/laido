@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::asset::AssetPlugin;
 use bevy_iaido::{load_log, replay_match, IaidoPlugin, IaidoSettings};
 
 fn main() {
@@ -22,15 +23,20 @@ fn main() {
     App::new()
         .insert_resource(IaidoSettings::default())
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "IAIDO MVP".into(),
-                    resolution: (720., 1280.).into(),
-                    resizable: false,
+            DefaultPlugins
+                .set(AssetPlugin {
+                    file_path: format!("{}/assets", env!("CARGO_MANIFEST_DIR")).into(),
+                    ..default()
+                })
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "IAIDO MVP".into(),
+                        resolution: (720., 1280.).into(),
+                        resizable: false,
+                        ..default()
+                    }),
                     ..default()
                 }),
-                ..default()
-            }),
             IaidoPlugin,
         ))
         .run();

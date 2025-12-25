@@ -126,7 +126,7 @@ fn setup_visuals(mut commands: Commands) {
 #[cfg(feature = "bevy")]
 #[derive(Resource, Default)]
 struct AudioHandles {
-    wind: Option<Handle<KiraAudioSource>>,
+    _wind: Option<Handle<KiraAudioSource>>,
     go: Option<Handle<KiraAudioSource>>,
     draw: Option<Handle<KiraAudioSource>>,
     hit: Option<Handle<KiraAudioSource>>,
@@ -135,15 +135,25 @@ struct AudioHandles {
 
 #[cfg(feature = "bevy")]
 fn setup_audio(mut commands: Commands, assets: Res<AssetServer>, audio: Res<Audio>) {
-    // Attempt to load; missing assets are acceptable (silent fallback)
-    let wind = assets.load::<KiraAudioSource>("audio/wind.ogg");
-    let go = assets.load::<KiraAudioSource>("audio/go.ogg");
-    let draw = assets.load::<KiraAudioSource>("audio/draw.ogg");
-    let hit = assets.load::<KiraAudioSource>("audio/hit.ogg");
-    let clash = assets.load::<KiraAudioSource>("audio/clash.ogg");
-    commands.insert_resource(AudioHandles { wind: Some(wind.clone()), go: Some(go), draw: Some(draw), hit: Some(hit), clash: Some(clash) });
-    // Start wind loop quietly
-    audio.play(wind).with_volume(0.2).looped();
+    // Attempt to load if present; missing assets are acceptable (silent fallback)
+    let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets");
+    let load_if_exists = |rel: &str| -> Option<Handle<KiraAudioSource>> {
+        if base.join(rel).exists() {
+            Some(assets.load::<KiraAudioSource>(rel.to_string()))
+        } else {
+            None
+        }
+    };
+    let wind = load_if_exists("audio/wind.ogg");
+    let go = load_if_exists("audio/go.ogg");
+    let draw = load_if_exists("audio/draw.ogg");
+    let hit = load_if_exists("audio/hit.ogg");
+    let clash = load_if_exists("audio/clash.ogg");
+    commands.insert_resource(AudioHandles { _wind: wind.clone(), go, draw, hit, clash });
+    // Start wind loop quietly if available
+    if let Some(wind) = wind {
+        audio.play(wind).with_volume(0.2).looped();
+    }
 }
 
 #[cfg(feature = "bevy")]
@@ -294,7 +304,7 @@ fn react_audio(
     for _ in go_rx.read() {
         if let Some(h) = &handles.go { audio.play(h.clone()); }
     }
-    for e in slash_rx.read() {
+    for _ in slash_rx.read() {
         // Draw + hit sequence
         if let Some(d) = &handles.draw { audio.play(d.clone()); }
         if let Some(h) = &handles.hit { audio.play(h.clone()); }
