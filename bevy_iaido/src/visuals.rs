@@ -4,7 +4,8 @@ use bevy_tweening::lens::*;
 use std::time::Duration;
 
 use crate::{Actor, ClashCue, GoCue, SlashCue, InputDetected};
-use crate::types::Direction as GameDirection;
+use crate::types::{Direction as GameDirection, Opening};
+use crate::plugin::DuelRuntime;
 
 pub struct VisualsPlugin;
 
@@ -21,7 +22,38 @@ impl Plugin for VisualsPlugin {
                 handle_input_detected,
                 despawn_expired,
                 reset_character_frames,
+                update_character_stance,
             ));
+    }
+}
+
+fn get_sprite_index(opening: Opening) -> usize {
+    match opening {
+        Opening::Up => 5,
+        Opening::Down => 9,
+        Opening::Left => 3,
+        Opening::Right => 4,
+        Opening::UpLeft => 0,
+        Opening::UpRight => 6,
+        Opening::DownLeft => 11,
+        Opening::DownRight => 12,
+        Opening::UpDown => 2,
+        Opening::LeftRight => 7,
+    }
+}
+
+fn update_character_stance(
+    rt: Res<DuelRuntime>,
+    mut char_q: Query<(&Character, &mut TextureAtlas), Without<ResetFrame>>,
+) {
+    for (character, mut atlas) in char_q.iter_mut() {
+        // AI shows what Human must react to (human_opening)
+        // Human shows what AI must react to (ai_opening)
+        let opening = match character.actor {
+            Actor::Human => rt.machine.ai_opening,
+            Actor::Ai => rt.machine.human_opening,
+        };
+        atlas.index = get_sprite_index(opening);
     }
 }
 
