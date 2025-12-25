@@ -1,6 +1,4 @@
-use core::time::Duration;
-
-use crate::combat::{correct_direction_for, judge_outcome};
+use crate::combat::judge_outcome;
 use crate::config::*;
 use crate::rng::XorShift32;
 use crate::types::*;
@@ -230,7 +228,6 @@ impl DuelMachine {
     #[cfg(test)]
     pub fn force_go(&mut self, now_ms: u64) { self.phase = DuelPhase::GoSignal; self.go_ts_ms = Some(now_ms); self.phase_start_ms = now_ms; }
 
-    #[cfg(test)]
     pub fn open_input(&mut self, now_ms: u64) { self.phase = DuelPhase::InputWindow; self.go_ts_ms = Some(now_ms); self.phase_start_ms = now_ms; }
 
     pub fn reset_match(&mut self, now_ms: u64) {

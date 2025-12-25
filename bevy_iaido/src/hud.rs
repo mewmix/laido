@@ -114,9 +114,9 @@ fn update_round_indicators(
             // Color based on outcome
             if let Some(result) = rt.machine.round_results.get(indicator.index) {
                 sprite.color = match result.outcome {
-                    Outcome::HumanWin | Outcome::EarlyAi | Outcome::WrongAi => Color::RED, // Human (Red)
-                    Outcome::AiWin | Outcome::EarlyHuman | Outcome::WrongHuman => Color::BLUE, // AI (Blue)
-                    Outcome::Clash => Color::YELLOW, // Clash
+                    Outcome::HumanWin | Outcome::EarlyAi | Outcome::WrongAi => Color::srgb(1.0, 0.0, 0.0), // Human (Red)
+                    Outcome::AiWin | Outcome::EarlyHuman | Outcome::WrongHuman => Color::srgb(0.0, 0.0, 1.0), // AI (Blue)
+                    Outcome::Clash => Color::srgb(1.0, 1.0, 0.0), // Clash
                 };
             } else {
                 sprite.color = Color::srgb(0.5, 0.5, 0.5); // Gray unplayed

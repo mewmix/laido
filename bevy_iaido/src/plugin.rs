@@ -6,10 +6,9 @@ use bevy::prelude::*;
 use bevy::asset::AssetServer;
 
 #[cfg(feature = "bevy")]
-use bevy_kira_audio::prelude::*;
-
+use bevy_kira_audio::prelude::{AudioSource as KiraAudioSource, *};
 #[cfg(feature = "bevy")]
-mod hud;
+use bevy::input::mouse::MouseMotion;
 
 #[cfg(feature = "bevy")]
 #[derive(Debug, Clone, Copy, Resource)]
@@ -26,9 +25,9 @@ impl Default for IaidoSettings {
 
 #[cfg(feature = "bevy")]
 #[derive(Resource)]
-struct DuelRuntime {
-    machine: DuelMachine,
-    swipe: SwipeDetector,
+pub struct DuelRuntime {
+    pub machine: DuelMachine,
+    pub swipe: SwipeDetector,
     cfg: SwipeConfig,
     ai_rng: XorShift32,
     ai_plan: Option<AiPlan>,
@@ -55,6 +54,7 @@ impl Plugin for IaidoPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<IaidoSettings>()
             .insert_resource(ClearColor(Color::BLACK))
+            .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
             .add_event::<ClashCue>()
@@ -75,7 +75,7 @@ impl Plugin for IaidoPlugin {
 
 #[cfg(feature = "bevy")]
 fn setup(mut commands: Commands, settings: Res<IaidoSettings>) {
-    commands.spawn(Camera2d);
+    commands.spawn(Camera2dBundle::default());
     let now_ms = 0;
     let machine = DuelMachine::new(DuelConfig { seed: settings.seed, clash: true }, now_ms);
     let swipe = SwipeDetector::new();
@@ -101,8 +101,24 @@ struct VisualFlash { human_ms: u64, ai_ms: u64, clash_ms: u64 }
 #[cfg(feature = "bevy")]
 fn setup_visuals(mut commands: Commands) {
     // Human on left, AI on right; simple rectangles as silhouettes
-    commands.spawn((Sprite::from_color(Color::GRAY), Transform::from_xyz(-150.0, 0.0, 0.0), HumanSilhouette));
-    commands.spawn((Sprite::from_color(Color::GRAY), Transform::from_xyz(150.0, 0.0, 0.0), AiSilhouette));
+    commands.spawn((SpriteBundle {
+        sprite: Sprite {
+            color: Color::srgb(0.5, 0.5, 0.5),
+            custom_size: Some(Vec2::new(50.0, 100.0)),
+            ..default()
+        },
+        transform: Transform::from_xyz(-150.0, 0.0, 0.0),
+        ..default()
+    }, HumanSilhouette));
+    commands.spawn((SpriteBundle {
+        sprite: Sprite {
+            color: Color::srgb(0.5, 0.5, 0.5),
+            custom_size: Some(Vec2::new(50.0, 100.0)),
+            ..default()
+        },
+        transform: Transform::from_xyz(150.0, 0.0, 0.0),
+        ..default()
+    }, AiSilhouette));
     commands.insert_resource(VisualFlash::default());
 }
 
@@ -110,21 +126,21 @@ fn setup_visuals(mut commands: Commands) {
 #[cfg(feature = "bevy")]
 #[derive(Resource, Default)]
 struct AudioHandles {
-    wind: Option<Handle<AudioSource>>,
-    go: Option<Handle<AudioSource>>,
-    draw: Option<Handle<AudioSource>>,
-    hit: Option<Handle<AudioSource>>,
-    clash: Option<Handle<AudioSource>>,
+    wind: Option<Handle<KiraAudioSource>>,
+    go: Option<Handle<KiraAudioSource>>,
+    draw: Option<Handle<KiraAudioSource>>,
+    hit: Option<Handle<KiraAudioSource>>,
+    clash: Option<Handle<KiraAudioSource>>,
 }
 
 #[cfg(feature = "bevy")]
 fn setup_audio(mut commands: Commands, assets: Res<AssetServer>, audio: Res<Audio>) {
     // Attempt to load; missing assets are acceptable (silent fallback)
-    let wind = assets.load::<AudioSource>("audio/wind.ogg");
-    let go = assets.load::<AudioSource>("audio/go.ogg");
-    let draw = assets.load::<AudioSource>("audio/draw.ogg");
-    let hit = assets.load::<AudioSource>("audio/hit.ogg");
-    let clash = assets.load::<AudioSource>("audio/clash.ogg");
+    let wind = assets.load::<KiraAudioSource>("audio/wind.ogg");
+    let go = assets.load::<KiraAudioSource>("audio/go.ogg");
+    let draw = assets.load::<KiraAudioSource>("audio/draw.ogg");
+    let hit = assets.load::<KiraAudioSource>("audio/hit.ogg");
+    let clash = assets.load::<KiraAudioSource>("audio/clash.ogg");
     commands.insert_resource(AudioHandles { wind: Some(wind.clone()), go: Some(go), draw: Some(draw), hit: Some(hit), clash: Some(clash) });
     // Start wind loop quietly
     audio.play(wind).with_volume(0.2).looped();
@@ -136,10 +152,18 @@ fn update_time(mut rt: ResMut<DuelRuntime>, time: Res<Time>) {
     rt.machine.tick(now_ms);
 }
 
+// Track previous touch positions to calculate delta
+#[cfg(feature = "bevy")]
+#[derive(Resource, Default)]
+struct TouchTracker {
+    last_pos: std::collections::HashMap<u64, Vec2>,
+}
+
 #[cfg(feature = "bevy")]
 fn read_input(
     mut rt: ResMut<DuelRuntime>,
     mut touches: EventReader<TouchInput>,
+    mut tracker: ResMut<TouchTracker>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut mouse_motion: EventReader<MouseMotion>,
     time: Res<Time>,
@@ -147,16 +171,25 @@ fn read_input(
     let dt_ms = (time.delta_seconds_f64() * 1000.0) as u64;
     for ev in touches.read() {
         match ev.phase {
-            bevy::input::touch::TouchPhase::Moved => {
-                // Using delta is not directly provided; in production track previous positions per touch ID.
-                // Here we approximate with zero because detailed input is out of scope.
-                let sample = SwipeSample { dt_ms, dx: ev.delta.x, dy: ev.delta.y };
-                if let Some(dir) = rt.swipe.update(&rt.cfg, sample) {
-                    let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
-                    rt.machine.on_swipe(Actor::Human, dir, now_ms);
-                }
+            bevy::input::touch::TouchPhase::Started => {
+                tracker.last_pos.insert(ev.id, ev.position);
             }
-            _ => {}
+            bevy::input::touch::TouchPhase::Moved => {
+                if let Some(last) = tracker.last_pos.get(&ev.id) {
+                    let dx = ev.position.x - last.x;
+                    let dy = ev.position.y - last.y;
+                    let sample = SwipeSample { dt_ms, dx, dy };
+                    let cfg = rt.cfg.clone();
+                    if let Some(dir) = rt.swipe.update(&cfg, sample) {
+                        let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+                        rt.machine.on_swipe(Actor::Human, dir, now_ms);
+                    }
+                }
+                tracker.last_pos.insert(ev.id, ev.position);
+            }
+            bevy::input::touch::TouchPhase::Ended | bevy::input::touch::TouchPhase::Canceled => {
+                tracker.last_pos.remove(&ev.id);
+            }
         }
     }
 
@@ -164,7 +197,8 @@ fn read_input(
     if mouse_buttons.pressed(MouseButton::Left) {
         for m in mouse_motion.read() {
             let sample = SwipeSample { dt_ms, dx: m.delta.x, dy: m.delta.y };
-            if let Some(dir) = rt.swipe.update(&rt.cfg, sample) {
+            let cfg = rt.cfg.clone();
+            if let Some(dir) = rt.swipe.update(&cfg, sample) {
                 let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
                 rt.machine.on_swipe(Actor::Human, dir, now_ms);
             }
@@ -212,9 +246,9 @@ fn react_outcomes(
 ) {
     if let Some(last) = rt.machine.round_results.last() {
         match last.outcome {
-            Outcome::Clash => clash_tx.send(ClashCue),
-            Outcome::HumanWin | Outcome::WrongAi | Outcome::EarlyAi => slash_tx.send(SlashCue { actor: Actor::Human }),
-            Outcome::AiWin | Outcome::WrongHuman | Outcome::EarlyHuman => slash_tx.send(SlashCue { actor: Actor::Ai }),
+            Outcome::Clash => { clash_tx.send(ClashCue); },
+            Outcome::HumanWin | Outcome::WrongAi | Outcome::EarlyAi => { slash_tx.send(SlashCue { actor: Actor::Human }); },
+            Outcome::AiWin | Outcome::WrongHuman | Outcome::EarlyHuman => { slash_tx.send(SlashCue { actor: Actor::Ai }); },
         }
     }
 }
@@ -238,12 +272,12 @@ fn update_visuals(
     vf.ai_ms = vf.ai_ms.saturating_sub(dt_ms);
     vf.clash_ms = vf.clash_ms.saturating_sub(dt_ms);
 
-    let base = if vf.clash_ms > 0 { Color::YELLOW } else { Color::GRAY };
+    let base = if vf.clash_ms > 0 { Color::srgb(1.0, 1.0, 0.0) } else { Color::srgb(0.5, 0.5, 0.5) };
     if let Ok(mut s) = humans.get_single_mut() {
-        s.color = if vf.human_ms > 0 { Color::RED } else { base };
+        s.color = if vf.human_ms > 0 { Color::srgb(1.0, 0.0, 0.0) } else { base };
     }
     if let Ok(mut s) = ais.get_single_mut() {
-        s.color = if vf.ai_ms > 0 { Color::RED } else { base };
+        s.color = if vf.ai_ms > 0 { Color::srgb(1.0, 0.0, 0.0) } else { base };
     }
 }
 
