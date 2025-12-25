@@ -5,7 +5,7 @@ use bevy_tweening::lens::*;
 use std::time::Duration;
 
 use crate::combat::correct_direction_for;
-use crate::plugin::{DuelRuntime, GoCue};
+use crate::plugin::{DuelRuntime, GoCue, DebugMode};
 use crate::types::{Direction, DuelPhase, MatchState, Outcome};
 
 pub fn systems() -> impl Plugin {
@@ -294,10 +294,17 @@ fn handle_restart_input(
 }
 
 fn update_debug_text(
-    mut query: Query<&mut Text, With<DebugText>>,
+    mut query: Query<(&mut Text, &mut Visibility), With<DebugText>>,
     rt: Res<DuelRuntime>,
+    debug_mode: Res<DebugMode>,
 ) {
-    if let Ok(mut text) = query.get_single_mut() {
+    if let Ok((mut text, mut vis)) = query.get_single_mut() {
+        if !debug_mode.0 {
+            *vis = Visibility::Hidden;
+            return;
+        }
+        *vis = Visibility::Visible;
+
         let m = &rt.machine;
         
         let last_outcome = if let Some(res) = m.round_results.last() {

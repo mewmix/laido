@@ -56,12 +56,17 @@ pub struct InputDetected {
 }
 
 #[cfg(feature = "bevy")]
+#[derive(Resource, Default)]
+pub struct DebugMode(pub bool);
+
+#[cfg(feature = "bevy")]
 pub struct IaidoPlugin;
 
 #[cfg(feature = "bevy")]
 impl Plugin for IaidoPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<IaidoSettings>()
+            .init_resource::<DebugMode>()
             .insert_resource(ClearColor(Color::BLACK))
             .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
@@ -79,7 +84,18 @@ impl Plugin for IaidoPlugin {
                 advance_duel,
                 react_outcomes,
                 react_audio,
+                toggle_debug_mode,
             ));
+    }
+}
+
+#[cfg(feature = "bevy")]
+fn toggle_debug_mode(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut debug_mode: ResMut<DebugMode>,
+) {
+    if keys.just_pressed(KeyCode::KeyD) {
+        debug_mode.0 = !debug_mode.0;
     }
 }
 
