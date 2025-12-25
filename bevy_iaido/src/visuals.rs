@@ -65,8 +65,8 @@ fn setup_scene(
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     // Assets
-    let texture = asset_server.load("atlas/swordsman_laido_atlas.png");
-    let layout = TextureAtlasLayout::from_grid(UVec2::new(501, 501), 4, 4, None, None);
+    let texture = asset_server.load("atlas/swordsman_laido_atlas2.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(512, 512), 4, 4, None, None);
     let layout_handle = texture_atlas_layouts.add(layout);
     commands.insert_resource(CharacterAssets {
         layout: layout_handle,
@@ -113,12 +113,7 @@ fn spawn_character(
     pos: Vec2,
     assets: &CharacterAssets,
 ) {
-    let color = match actor {
-        Actor::Human => Color::srgb(0.2, 0.6, 1.0), // Blueish tint
-        Actor::Ai => Color::srgb(1.0, 0.3, 0.3),    // Reddish tint
-    };
-
-    let base_scale = Vec3::splat(0.4); // Scale down 501x501
+    let base_scale = Vec3::splat(0.4); // Scale down 512x512
 
     // Idle Animation: Breathing (Scale Y)
     let idle_tween = Tween::new(
@@ -138,7 +133,7 @@ fn spawn_character(
         SpriteBundle {
             texture: assets.texture.clone(),
             sprite: Sprite {
-                color,
+                color: Color::srgb(1.0, 1.0, 1.0),
                 flip_x,
                 ..default()
             },
@@ -201,7 +196,7 @@ fn handle_slash_cue(
                 animator.set_tweenable(attack_seq);
 
                 // Change to attack frame
-                atlas.index = 1;
+                atlas.index = 2;
                 commands.entity(entity).insert(ResetFrame(Timer::from_seconds(0.5, TimerMode::Once)));
             }
         }

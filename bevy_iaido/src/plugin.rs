@@ -90,7 +90,7 @@ fn setup(mut commands: Commands, settings: Res<IaidoSettings>) {
     let swipe = SwipeDetector::new();
     let cfg = SwipeConfig { dpi: settings.dpi };
     let ai_rng = XorShift32::new(settings.seed ^ 0xDEADBEEF);
-    let ai_profile = SKILLED;
+    let ai_profile = DUMB;
     commands.insert_resource(DuelRuntime { machine, swipe, cfg, ai_rng, ai_plan: None, ai_profile });
 }
 

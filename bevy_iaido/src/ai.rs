@@ -8,8 +8,9 @@ pub struct AiProfile {
     pub wrong_percent: u8, // 0..=100
 }
 
-pub const NOVICE: AiProfile = AiProfile { mean_reaction_ms: 280, wrong_percent: 15 };
-pub const SKILLED: AiProfile = AiProfile { mean_reaction_ms: 190, wrong_percent: 5 };
+pub const DUMB: AiProfile = AiProfile { mean_reaction_ms: 500, wrong_percent: 30 };
+pub const NOVICE: AiProfile = AiProfile { mean_reaction_ms: 450, wrong_percent: 20 };
+pub const SKILLED: AiProfile = AiProfile { mean_reaction_ms: 350, wrong_percent: 10 };
 pub const MASTER: AiProfile = AiProfile { mean_reaction_ms: 140, wrong_percent: 0 };
 
 #[derive(Clone, Debug)]

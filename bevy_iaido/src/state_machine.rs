@@ -137,6 +137,11 @@ impl DuelMachine {
     }
 
     pub fn on_swipe(&mut self, actor: Actor, dir: Direction, ts_ms: u64) {
+        // Only process inputs in active phases
+        if !matches!(self.phase, DuelPhase::RandomDelay | DuelPhase::GoSignal | DuelPhase::InputWindow) {
+            return;
+        }
+
         // Any swipe before GO is instant loss for that actor
         if let Some(go) = self.go_ts_ms {
             if ts_ms < go {
