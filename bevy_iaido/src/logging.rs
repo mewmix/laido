@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 
 use crate::types::*;
 
@@ -46,4 +48,21 @@ pub fn replay_round(log: &DuelLog) -> Result<(), ReplayError> {
     let last = dm.round_results.last().expect("round result exists");
     if last.outcome != log.outcome { return Err(ReplayError::OutcomeMismatch); }
     Ok(())
+}
+
+pub fn load_log(path: &str) -> Option<MatchLog> {
+    if let Ok(content) = fs::read_to_string(path) {
+        MatchLog::from_json(&content).ok()
+    } else {
+        None
+    }
+}
+
+pub fn replay_match(log: &MatchLog) -> bool {
+    for round in &log.rounds {
+        if replay_round(round).is_err() {
+            return false;
+        }
+    }
+    true
 }

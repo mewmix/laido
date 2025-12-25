@@ -8,6 +8,8 @@ mod ai;
 mod logging;
 
 #[cfg(feature = "bevy")]
+mod hud;
+#[cfg(feature = "bevy")]
 mod plugin;
 
 pub use config::*;
