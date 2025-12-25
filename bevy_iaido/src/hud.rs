@@ -5,8 +5,9 @@ use bevy_tweening::lens::*;
 use std::time::Duration;
 
 use crate::combat::correct_direction_for;
-use crate::plugin::{DuelRuntime, GoCue, DebugMode};
-use crate::types::{Direction, DuelPhase, MatchState, Outcome};
+use crate::plugin::{DuelRuntime, GoCue, DebugMode, AnimationTestMode};
+use crate::types::{Direction, DuelPhase, MatchState, Outcome, Actor};
+use crate::visuals::Character;
 
 pub fn systems() -> impl Plugin {
     HudPlugin
@@ -297,8 +298,20 @@ fn update_debug_text(
     mut query: Query<(&mut Text, &mut Visibility), With<DebugText>>,
     rt: Res<DuelRuntime>,
     debug_mode: Res<DebugMode>,
+    test_mode: Res<AnimationTestMode>,
+    char_q: Query<(&Character, &TextureAtlas)>,
 ) {
     if let Ok((mut text, mut vis)) = query.get_single_mut() {
+        if test_mode.0 {
+            *vis = Visibility::Visible;
+            let mut idx = 0;
+            for (c, atlas) in char_q.iter() {
+                if matches!(c.actor, Actor::Human) { idx = atlas.index; }
+            }
+            text.sections[0].value = format!("ANIMATION TEST MODE\nIndex: {}\n(Use Left/Right to cycle)", idx);
+            return;
+        }
+
         if !debug_mode.0 {
             *vis = Visibility::Hidden;
             return;

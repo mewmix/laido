@@ -105,8 +105,7 @@ impl DuelMachine {
                 self.phase_start_ms = now_ms;
             }
             DuelPhase::InputWindow => {
-                if now_ms - self.phase_start_ms >= self.input_window_ms {
-                    // Resolve immediately at window end to avoid extra frame dependency
+                if self.human_swipe.is_some() && self.ai_swipe.is_some() {
                     let outcome = self.resolve(now_ms);
                     self.apply_outcome(outcome);
                     self.phase = DuelPhase::ResultFlash;

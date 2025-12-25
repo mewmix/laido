@@ -60,6 +60,10 @@ pub struct InputDetected {
 pub struct DebugMode(pub bool);
 
 #[cfg(feature = "bevy")]
+#[derive(Resource, Default)]
+pub struct AnimationTestMode(pub bool);
+
+#[cfg(feature = "bevy")]
 pub struct IaidoPlugin;
 
 #[cfg(feature = "bevy")]
@@ -67,6 +71,7 @@ impl Plugin for IaidoPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<IaidoSettings>()
             .init_resource::<DebugMode>()
+            .init_resource::<AnimationTestMode>()
             .insert_resource(ClearColor(Color::BLACK))
             .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
@@ -85,6 +90,7 @@ impl Plugin for IaidoPlugin {
                 react_outcomes,
                 react_audio,
                 toggle_debug_mode,
+                toggle_animation_test,
             ));
     }
 }
@@ -96,6 +102,17 @@ fn toggle_debug_mode(
 ) {
     if keys.just_pressed(KeyCode::KeyD) {
         debug_mode.0 = !debug_mode.0;
+    }
+}
+
+#[cfg(feature = "bevy")]
+fn toggle_animation_test(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut test_mode: ResMut<AnimationTestMode>,
+) {
+    if keys.just_pressed(KeyCode::KeyT) {
+        test_mode.0 = !test_mode.0;
+        println!("Animation Test Mode: {}", test_mode.0);
     }
 }
 

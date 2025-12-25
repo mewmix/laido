@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::{Actor, ClashCue, GoCue, SlashCue, InputDetected};
 use crate::types::{Direction as GameDirection, Opening};
-use crate::plugin::DuelRuntime;
+use crate::plugin::{DuelRuntime, AnimationTestMode};
 
 pub struct VisualsPlugin;
 
@@ -23,6 +23,7 @@ impl Plugin for VisualsPlugin {
                 despawn_expired,
                 reset_character_frames,
                 update_character_stance,
+                animation_tester,
             ));
     }
 }
@@ -60,7 +61,10 @@ fn get_sprite_index_from_dir(dir: GameDirection) -> usize {
 fn update_character_stance(
     rt: Res<DuelRuntime>,
     mut char_q: Query<(&Character, &mut TextureAtlas), Without<ResetFrame>>,
+    test_mode: Res<AnimationTestMode>,
 ) {
+    if test_mode.0 { return; }
+
     for (character, mut atlas) in char_q.iter_mut() {
         let index = match character.actor {
             Actor::Human => {
@@ -79,6 +83,28 @@ fn update_character_stance(
             }
         };
         atlas.index = index;
+    }
+}
+
+fn animation_tester(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut char_q: Query<(&Character, &mut TextureAtlas)>,
+    test_mode: Res<AnimationTestMode>,
+) {
+    if !test_mode.0 { return; }
+    
+    let mut delta = 0;
+    if keys.just_pressed(KeyCode::ArrowLeft) { delta = -1; }
+    if keys.just_pressed(KeyCode::ArrowRight) { delta = 1; }
+    
+    if delta != 0 {
+        for (character, mut atlas) in char_q.iter_mut() {
+            if matches!(character.actor, Actor::Human) {
+                let new_idx = (atlas.index as i32 + delta).rem_euclid(16) as usize;
+                atlas.index = new_idx;
+                println!("Human Atlas Index: {}", new_idx);
+            }
+        }
     }
 }
 
