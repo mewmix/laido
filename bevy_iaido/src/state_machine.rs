@@ -18,7 +18,8 @@ pub struct DuelMachine {
     pub phase: DuelPhase,
     pub rng: XorShift32,
     pub seed: u32,
-    pub opening: Opening,
+    pub human_opening: Opening,
+    pub ai_opening: Opening,
     pub go_ts_ms: Option<u64>,
     pub phase_start_ms: u64,
     pub delay_target_ms: Option<u64>,
@@ -35,12 +36,14 @@ pub struct DuelMachine {
 impl DuelMachine {
     pub fn new(cfg: DuelConfig, start_ms: u64) -> Self {
         let mut rng = XorShift32::new(cfg.seed);
-        let opening = pick_opening(&mut rng);
+        let human_opening = pick_opening(&mut rng);
+        let ai_opening = pick_opening(&mut rng);
         Self {
             phase: DuelPhase::Standoff,
             rng,
             seed: cfg.seed,
-            opening,
+            human_opening,
+            ai_opening,
             go_ts_ms: None,
             phase_start_ms: start_ms,
             delay_target_ms: None,
@@ -55,7 +58,7 @@ impl DuelMachine {
         }
     }
 
-    pub fn current_opening(&self) -> Opening { self.opening }
+    pub fn current_opening(&self) -> Opening { self.human_opening }
 
     pub fn schedule_go_delay(&mut self) -> u64 {
         self.rng.range_u64(RANDOM_DELAY_MIN_MS, RANDOM_DELAY_MAX_MS)
@@ -74,7 +77,8 @@ impl DuelMachine {
         self.human_swipe = None;
         self.ai_swipe = None;
         self.input_window_ms = if clash { CLASH_INPUT_WINDOW_MS } else { INPUT_WINDOW_MS };
-        self.opening = pick_opening(&mut self.rng);
+        self.human_opening = pick_opening(&mut self.rng);
+        self.ai_opening = pick_opening(&mut self.rng);
         let delay = if clash { self.schedule_clash_delay() } else { self.schedule_go_delay() };
         self.delay_target_ms = Some(now_ms + delay);
     }
@@ -82,7 +86,9 @@ impl DuelMachine {
     pub fn tick(&mut self, now_ms: u64) {
         match self.phase {
             DuelPhase::Standoff => {
-                self.start_round(now_ms);
+                if now_ms - self.phase_start_ms >= START_DELAY_MS {
+                    self.start_round(now_ms);
+                }
             }
             DuelPhase::RandomDelay => {
                 if let Some(target) = self.delay_target_ms {
@@ -135,7 +141,13 @@ impl DuelMachine {
         if let Some(go) = self.go_ts_ms {
             if ts_ms < go {
                 let outcome = match actor { Actor::Human => Outcome::EarlyHuman, Actor::Ai => Outcome::EarlyAi };
-                self.round_results.push(RoundResult { opening: self.opening, outcome, human_reaction_ms: None, ai_reaction_ms: None });
+                self.round_results.push(RoundResult { 
+                    human_opening: self.human_opening, 
+                    ai_opening: self.ai_opening, 
+                    outcome, 
+                    human_reaction_ms: None, 
+                    ai_reaction_ms: None 
+                });
                 self.phase = DuelPhase::ResultFlash;
                 self.phase_start_ms = ts_ms;
                 match actor { Actor::Human => self.ai_score += 1, Actor::Ai => self.human_score += 1 }
@@ -146,7 +158,13 @@ impl DuelMachine {
         } else {
             // GO not scheduled yet => early
             let outcome = match actor { Actor::Human => Outcome::EarlyHuman, Actor::Ai => Outcome::EarlyAi };
-            self.round_results.push(RoundResult { opening: self.opening, outcome, human_reaction_ms: None, ai_reaction_ms: None });
+            self.round_results.push(RoundResult { 
+                human_opening: self.human_opening, 
+                ai_opening: self.ai_opening, 
+                outcome, 
+                human_reaction_ms: None, 
+                ai_reaction_ms: None 
+            });
             self.phase = DuelPhase::ResultFlash;
             self.phase_start_ms = ts_ms;
             match actor { Actor::Human => self.ai_score += 1, Actor::Ai => self.human_score += 1 }
@@ -172,7 +190,8 @@ impl DuelMachine {
         let human_r = self.human_swipe.as_ref().map(|e| e.ts_ms - go);
         let ai_r = self.ai_swipe.as_ref().map(|e| e.ts_ms - go);
         let outcome = judge_outcome(
-            self.opening,
+            self.human_opening,
+            self.ai_opening,
             human_dir,
             ai_dir,
             human_r,
@@ -182,7 +201,8 @@ impl DuelMachine {
         // Store metadata and result (preallocated capacity prevents allocs during duel)
         self.round_meta.push(RoundMeta { go_ts_ms: go, human: self.human_swipe.clone(), ai: self.ai_swipe.clone() });
         self.round_results.push(RoundResult {
-            opening: self.opening,
+            human_opening: self.human_opening,
+            ai_opening: self.ai_opening,
             outcome,
             human_reaction_ms: human_r.map(|v| v as u32),
             ai_reaction_ms: ai_r.map(|v| v as u32),
@@ -217,7 +237,8 @@ impl DuelMachine {
         let meta = &self.round_meta[i];
         Some(crate::logging::DuelLog {
             seed: self.seed,
-            opening: rr.opening,
+            human_opening: rr.human_opening,
+            ai_opening: rr.ai_opening,
             go: GoEvent { ts_ms: meta.go_ts_ms },
             human: meta.human.clone(),
             ai: meta.ai.clone(),
@@ -243,15 +264,22 @@ impl DuelMachine {
         self.human_score = 0;
         self.ai_score = 0;
         self.input_window_ms = INPUT_WINDOW_MS;
-        self.opening = pick_opening(&mut self.rng);
+        self.human_opening = pick_opening(&mut self.rng);
+        self.ai_opening = pick_opening(&mut self.rng);
     }
 }
 
 pub fn pick_opening(rng: &mut XorShift32) -> Opening {
-    match rng.next_u32() % 4 {
-        0 => Opening::HighGuard,
-        1 => Opening::LowGuard,
-        2 => Opening::LeftGuard,
-        _ => Opening::RightGuard,
+    match rng.next_u32() % 10 {
+        0 => Opening::Up,
+        1 => Opening::UpRight,
+        2 => Opening::Right,
+        3 => Opening::DownRight,
+        4 => Opening::Down,
+        5 => Opening::DownLeft,
+        6 => Opening::Left,
+        7 => Opening::UpLeft,
+        8 => Opening::UpDown,
+        _ => Opening::LeftRight,
     }
 }

@@ -1,6 +1,7 @@
 use core::time::Duration;
 
 // Timing constants (monotonic, deterministic)
+pub const START_DELAY_MS: u64 = 3000;
 pub const RANDOM_DELAY_MIN_MS: u64 = 600;
 pub const RANDOM_DELAY_MAX_MS: u64 = 1400;
 pub const INPUT_WINDOW_MS: u64 = 120;

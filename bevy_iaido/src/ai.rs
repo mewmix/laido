@@ -21,15 +21,19 @@ pub struct AiPlan {
 impl AiPlan {
     pub fn decide_dir(&self, opening: Opening, mut rng: XorShift32) -> Direction {
         if self.wrong {
-            // Pick a wrong direction uniformly among the 3 incorrect
+            // Pick a wrong direction uniformly among the 9 incorrect
             let correct = correct_direction_for(opening);
-            let pool = [Direction::Up, Direction::Down, Direction::Left, Direction::Right];
-            let mut choices: [Direction; 3] = [Direction::Up, Direction::Down, Direction::Left];
+            let pool = [
+                Direction::Up, Direction::UpRight, Direction::Right, Direction::DownRight,
+                Direction::Down, Direction::DownLeft, Direction::Left, Direction::UpLeft,
+                Direction::UpDown, Direction::LeftRight
+            ];
+            let mut choices: [Direction; 9] = [Direction::Up; 9];
             let mut ix = 0;
             for d in pool.iter().copied() {
                 if d != correct { choices[ix] = d; ix += 1; }
             }
-            let k = (rng.next_u32() as usize) % 3;
+            let k = (rng.next_u32() as usize) % 9;
             choices[k]
         } else {
             correct_direction_for(opening)

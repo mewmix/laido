@@ -6,7 +6,8 @@ use crate::types::*;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DuelLog {
     pub seed: u32,
-    pub opening: Opening,
+    pub human_opening: Opening,
+    pub ai_opening: Opening,
     pub go: GoEvent,
     pub human: Option<SwipeEvent>,
     pub ai: Option<SwipeEvent>,
@@ -36,7 +37,7 @@ pub fn replay_round(log: &DuelLog) -> Result<(), ReplayError> {
     use crate::state_machine::{DuelConfig, DuelMachine};
     let mut dm = DuelMachine::new(DuelConfig { seed: log.seed, clash: true }, log.go.ts_ms);
     // Force opening identity to match
-    if dm.opening != log.opening { return Err(ReplayError::OpeningMismatch); }
+    if dm.human_opening != log.human_opening || dm.ai_opening != log.ai_opening { return Err(ReplayError::OpeningMismatch); }
     // Force into input window at GO
     dm.open_input(log.go.ts_ms);
     // Feed inputs

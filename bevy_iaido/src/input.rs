@@ -76,7 +76,21 @@ impl SwipeDetector {
 }
 
 pub fn primary_direction(dx: f32, dy: f32) -> Direction {
-    if dx.abs() > dy.abs() {
+    let adx = dx.abs();
+    let ady = dy.abs();
+    let max = adx.max(ady);
+    if max == 0.0 { return Direction::Up; } // Fallback
+
+    // Check for diagonal: if the smaller component is at least 40% of the larger
+    if adx > 0.4 * max && ady > 0.4 * max {
+        if dx > 0.0 {
+            return if dy > 0.0 { Direction::UpRight } else { Direction::DownRight };
+        } else {
+            return if dy > 0.0 { Direction::UpLeft } else { Direction::DownLeft };
+        }
+    }
+
+    if adx > ady {
         if dx > 0.0 { Direction::Right } else { Direction::Left }
     } else {
         if dy > 0.0 { Direction::Up } else { Direction::Down }

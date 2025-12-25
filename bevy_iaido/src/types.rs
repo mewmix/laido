@@ -3,10 +3,18 @@ use core::time::Duration;
 use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum Direction { Up, Down, Left, Right }
+pub enum Direction {
+    Up, Down, Left, Right,
+    UpLeft, UpRight, DownLeft, DownRight,
+    UpDown, LeftRight
+}
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum Opening { HighGuard, LowGuard, LeftGuard, RightGuard }
+pub enum Opening {
+    Up, Down, Left, Right,
+    UpLeft, UpRight, DownLeft, DownRight,
+    UpDown, LeftRight
+}
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Actor { Human, Ai }
@@ -32,7 +40,8 @@ pub enum MatchState { InProgress, HumanWon, AiWon }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RoundResult {
-    pub opening: Opening,
+    pub human_opening: Opening,
+    pub ai_opening: Opening,
     pub outcome: Outcome,
     pub human_reaction_ms: Option<u32>,
     pub ai_reaction_ms: Option<u32>,
@@ -58,6 +67,12 @@ impl fmt::Display for Direction {
             Direction::Down => "DOWN",
             Direction::Left => "LEFT",
             Direction::Right => "RIGHT",
+            Direction::UpLeft => "UP+LEFT",
+            Direction::UpRight => "UP+RIGHT",
+            Direction::DownLeft => "DOWN+LEFT",
+            Direction::DownRight => "DOWN+RIGHT",
+            Direction::UpDown => "UP+DOWN",
+            Direction::LeftRight => "LEFT+RIGHT",
         };
         write!(f, "{}", s)
     }

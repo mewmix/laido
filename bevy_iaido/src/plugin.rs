@@ -46,6 +46,15 @@ pub struct SlashCue { pub actor: Actor }
 #[derive(Event)]
 pub struct ClashCue;
 
+use crate::types::Direction as GameDirection;
+
+#[cfg(feature = "bevy")]
+#[derive(Event)]
+pub struct InputDetected {
+    pub actor: Actor,
+    pub dir: GameDirection,
+}
+
 #[cfg(feature = "bevy")]
 pub struct IaidoPlugin;
 
@@ -58,16 +67,17 @@ impl Plugin for IaidoPlugin {
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
             .add_event::<ClashCue>()
+            .add_event::<InputDetected>()
             .add_plugins(bevy_kira_audio::AudioPlugin)
             .add_plugins(hud::systems())
-            .add_systems(Startup, (setup, setup_visuals, setup_audio))
+            .add_plugins(visuals::VisualsPlugin)
+            .add_systems(Startup, (setup, setup_audio))
             .add_systems(Update, (
                 update_time,
                 read_input,
                 drive_ai,
                 advance_duel,
                 react_outcomes,
-                update_visuals,
                 react_audio,
             ));
     }
@@ -75,7 +85,6 @@ impl Plugin for IaidoPlugin {
 
 #[cfg(feature = "bevy")]
 fn setup(mut commands: Commands, settings: Res<IaidoSettings>) {
-    commands.spawn(Camera2dBundle::default());
     let now_ms = 0;
     let machine = DuelMachine::new(DuelConfig { seed: settings.seed, clash: true }, now_ms);
     let swipe = SwipeDetector::new();
@@ -83,43 +92,6 @@ fn setup(mut commands: Commands, settings: Res<IaidoSettings>) {
     let ai_rng = XorShift32::new(settings.seed ^ 0xDEADBEEF);
     let ai_profile = SKILLED;
     commands.insert_resource(DuelRuntime { machine, swipe, cfg, ai_rng, ai_plan: None, ai_profile });
-}
-
-// Minimal silhouettes and hit flash state
-#[cfg(feature = "bevy")]
-#[derive(Component)]
-struct HumanSilhouette;
-
-#[cfg(feature = "bevy")]
-#[derive(Component)]
-struct AiSilhouette;
-
-#[cfg(feature = "bevy")]
-#[derive(Resource, Default)]
-struct VisualFlash { human_ms: u64, ai_ms: u64, clash_ms: u64 }
-
-#[cfg(feature = "bevy")]
-fn setup_visuals(mut commands: Commands) {
-    // Human on left, AI on right; simple rectangles as silhouettes
-    commands.spawn((SpriteBundle {
-        sprite: Sprite {
-            color: Color::srgb(0.5, 0.5, 0.5),
-            custom_size: Some(Vec2::new(50.0, 100.0)),
-            ..default()
-        },
-        transform: Transform::from_xyz(-150.0, 0.0, 0.0),
-        ..default()
-    }, HumanSilhouette));
-    commands.spawn((SpriteBundle {
-        sprite: Sprite {
-            color: Color::srgb(0.5, 0.5, 0.5),
-            custom_size: Some(Vec2::new(50.0, 100.0)),
-            ..default()
-        },
-        transform: Transform::from_xyz(150.0, 0.0, 0.0),
-        ..default()
-    }, AiSilhouette));
-    commands.insert_resource(VisualFlash::default());
 }
 
 // Audio setup and reactions
@@ -176,8 +148,42 @@ fn read_input(
     mut tracker: ResMut<TouchTracker>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     mut mouse_motion: EventReader<MouseMotion>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut input_tx: EventWriter<InputDetected>,
     time: Res<Time>,
 ) {
+    let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+
+    // Keys: Check combinations first
+    let up = keys.pressed(KeyCode::ArrowUp) || keys.pressed(KeyCode::KeyW);
+    let down = keys.pressed(KeyCode::ArrowDown) || keys.pressed(KeyCode::KeyS);
+    let left = keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyA);
+    let right = keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD);
+
+    let any_just = keys.just_pressed(KeyCode::ArrowUp) || keys.just_pressed(KeyCode::KeyW) ||
+                   keys.just_pressed(KeyCode::ArrowDown) || keys.just_pressed(KeyCode::KeyS) ||
+                   keys.just_pressed(KeyCode::ArrowLeft) || keys.just_pressed(KeyCode::KeyA) ||
+                   keys.just_pressed(KeyCode::ArrowRight) || keys.just_pressed(KeyCode::KeyD);
+
+    let mut key_dir = None;
+    if any_just {
+        if up && down { key_dir = Some(GameDirection::UpDown); }
+        else if left && right { key_dir = Some(GameDirection::LeftRight); }
+        else if up && right { key_dir = Some(GameDirection::UpRight); }
+        else if up && left { key_dir = Some(GameDirection::UpLeft); }
+        else if down && right { key_dir = Some(GameDirection::DownRight); }
+        else if down && left { key_dir = Some(GameDirection::DownLeft); }
+        else if up { key_dir = Some(GameDirection::Up); }
+        else if down { key_dir = Some(GameDirection::Down); }
+        else if left { key_dir = Some(GameDirection::Left); }
+        else if right { key_dir = Some(GameDirection::Right); }
+    }
+
+    if let Some(dir) = key_dir {
+        rt.machine.on_swipe(Actor::Human, dir, now_ms);
+        input_tx.send(InputDetected { actor: Actor::Human, dir });
+    }
+
     let dt_ms = (time.delta_seconds_f64() * 1000.0) as u64;
     for ev in touches.read() {
         match ev.phase {
@@ -191,8 +197,8 @@ fn read_input(
                     let sample = SwipeSample { dt_ms, dx, dy };
                     let cfg = rt.cfg.clone();
                     if let Some(dir) = rt.swipe.update(&cfg, sample) {
-                        let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
                         rt.machine.on_swipe(Actor::Human, dir, now_ms);
+                        input_tx.send(InputDetected { actor: Actor::Human, dir });
                     }
                 }
                 tracker.last_pos.insert(ev.id, ev.position);
@@ -209,8 +215,8 @@ fn read_input(
             let sample = SwipeSample { dt_ms, dx: m.delta.x, dy: m.delta.y };
             let cfg = rt.cfg.clone();
             if let Some(dir) = rt.swipe.update(&cfg, sample) {
-                let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
                 rt.machine.on_swipe(Actor::Human, dir, now_ms);
+                input_tx.send(InputDetected { actor: Actor::Human, dir });
             }
         }
     } else {
@@ -220,7 +226,11 @@ fn read_input(
 }
 
 #[cfg(feature = "bevy")]
-fn drive_ai(mut rt: ResMut<DuelRuntime>, time: Res<Time>) {
+fn drive_ai(
+    mut rt: ResMut<DuelRuntime>,
+    mut input_tx: EventWriter<InputDetected>,
+    time: Res<Time>,
+) {
     let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
     // Plan AI on GO
     if let Some(go) = rt.machine.go_ts_ms {
@@ -229,8 +239,9 @@ fn drive_ai(mut rt: ResMut<DuelRuntime>, time: Res<Time>) {
         }
         if let Some(plan) = rt.ai_plan.clone() {
             if now_ms >= go + plan.reaction_ms {
-                let dir = plan.decide_dir(rt.machine.opening, rt.ai_rng);
+                let dir = plan.decide_dir(rt.machine.ai_opening, rt.ai_rng);
                 rt.machine.on_swipe(Actor::Ai, dir, now_ms);
+                input_tx.send(InputDetected { actor: Actor::Ai, dir });
                 rt.ai_plan = None;
             }
         }
@@ -260,34 +271,6 @@ fn react_outcomes(
             Outcome::HumanWin | Outcome::WrongAi | Outcome::EarlyAi => { slash_tx.send(SlashCue { actor: Actor::Human }); },
             Outcome::AiWin | Outcome::WrongHuman | Outcome::EarlyHuman => { slash_tx.send(SlashCue { actor: Actor::Ai }); },
         }
-    }
-}
-
-#[cfg(feature = "bevy")]
-fn update_visuals(
-    time: Res<Time>,
-    mut vf: ResMut<VisualFlash>,
-    mut humans: Query<&mut Sprite, With<HumanSilhouette>>,
-    mut ais: Query<&mut Sprite, (With<AiSilhouette>, Without<HumanSilhouette>)>,
-    mut slashes: EventReader<SlashCue>,
-    mut clashes: EventReader<ClashCue>,
-) {
-    let dt_ms = (time.delta_seconds_f64() * 1000.0) as u64;
-    for e in slashes.read() {
-        match e.actor { Actor::Human => vf.ai_ms = 200, Actor::Ai => vf.human_ms = 200 }
-    }
-    for _ in clashes.read() { vf.clash_ms = 100; }
-
-    vf.human_ms = vf.human_ms.saturating_sub(dt_ms);
-    vf.ai_ms = vf.ai_ms.saturating_sub(dt_ms);
-    vf.clash_ms = vf.clash_ms.saturating_sub(dt_ms);
-
-    let base = if vf.clash_ms > 0 { Color::srgb(1.0, 1.0, 0.0) } else { Color::srgb(0.5, 0.5, 0.5) };
-    if let Ok(mut s) = humans.get_single_mut() {
-        s.color = if vf.human_ms > 0 { Color::srgb(1.0, 0.0, 0.0) } else { base };
-    }
-    if let Ok(mut s) = ais.get_single_mut() {
-        s.color = if vf.ai_ms > 0 { Color::srgb(1.0, 0.0, 0.0) } else { base };
     }
 }
 
