@@ -42,18 +42,43 @@ fn get_sprite_index(opening: Opening) -> usize {
     }
 }
 
+fn get_sprite_index_from_dir(dir: GameDirection) -> usize {
+    match dir {
+        GameDirection::Up => 5,
+        GameDirection::Down => 9,
+        GameDirection::Left => 3,
+        GameDirection::Right => 4,
+        GameDirection::UpLeft => 0,
+        GameDirection::UpRight => 6,
+        GameDirection::DownLeft => 11,
+        GameDirection::DownRight => 12,
+        GameDirection::UpDown => 2,
+        GameDirection::LeftRight => 7,
+    }
+}
+
 fn update_character_stance(
     rt: Res<DuelRuntime>,
     mut char_q: Query<(&Character, &mut TextureAtlas), Without<ResetFrame>>,
 ) {
     for (character, mut atlas) in char_q.iter_mut() {
-        // AI shows what Human must react to (human_opening)
-        // Human shows what AI must react to (ai_opening)
-        let opening = match character.actor {
-            Actor::Human => rt.machine.ai_opening,
-            Actor::Ai => rt.machine.human_opening,
+        let index = match character.actor {
+            Actor::Human => {
+                if let Some(swipe) = &rt.machine.human_swipe {
+                    get_sprite_index_from_dir(swipe.dir)
+                } else {
+                    get_sprite_index(rt.machine.ai_opening)
+                }
+            }
+            Actor::Ai => {
+                if let Some(swipe) = &rt.machine.ai_swipe {
+                    get_sprite_index_from_dir(swipe.dir)
+                } else {
+                    get_sprite_index(rt.machine.human_opening)
+                }
+            }
         };
-        atlas.index = get_sprite_index(opening);
+        atlas.index = index;
     }
 }
 
