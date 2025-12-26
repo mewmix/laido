@@ -154,6 +154,7 @@ fn animation_tester(
     time: Res<Time>,
     edit_mode: Res<AnimationEditMode>,
     mut block_state: ResMut<BlockState>,
+    mut stance_lock: ResMut<StanceLock>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
 
@@ -261,6 +262,7 @@ fn animation_tester(
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S DOUBLE".to_string() });
             if let Some(seq) = frames.human.sequence_indices(&S_DOUBLE_FRAMES) {
                 if let Some(return_idx) = frames.human.index_for_name(S_DOUBLE_RETURN) {
+                    stance_lock.index = Some(return_idx);
                     play_sequence_with_return_index(
                         Actor::Human,
                         seq,
@@ -277,6 +279,7 @@ fn animation_tester(
                 println!("Missing one or more heavy spin frames.");
             }
         } else if let Some(idx) = frames.human.index_for_name(S_PRESS_FRAME) {
+            stance_lock.index = Some(idx);
             play_frame_with_return_index(
                 Actor::Human,
                 idx,
@@ -444,6 +447,11 @@ struct RunAnimationFrames {
     human: Vec<usize>,
 }
 
+#[derive(Resource, Default)]
+struct StanceLock {
+    index: Option<usize>,
+}
+
 #[derive(Resource, Clone)]
 pub(crate) struct CharacterControllerState {
     pub(crate) controller: CharacterController,
@@ -501,6 +509,7 @@ fn setup_scene(
     });
     commands.insert_resource(RunAnimationFrames { human: run_frames });
     commands.insert_resource(MoveIntent::default());
+    commands.insert_resource(StanceLock::default());
 
     let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
     let controller = load_controller(&controller_path);
@@ -1383,6 +1392,7 @@ fn update_run_animation(
     move_intent: Res<MoveIntent>,
     frames: Res<FrameLibrary>,
     run_frames: Res<RunAnimationFrames>,
+    stance_lock: Res<StanceLock>,
     mut commands: Commands,
     mut char_q: Query<
         (
@@ -1408,7 +1418,10 @@ fn update_run_animation(
             if run_cycle.is_some() {
                 commands.entity(entity).remove::<RunCycle>();
             }
-            if let Some(idx) = frames.human.index_for_name(IDLE_FRAME) {
+            if let Some(locked_idx) = stance_lock.index {
+                frame_idx.index = locked_idx;
+                apply_frame(&frames.human, &mut frame_idx, &mut texture);
+            } else if let Some(idx) = frames.human.index_for_name(IDLE_FRAME) {
                 frame_idx.index = idx;
                 apply_frame(&frames.human, &mut frame_idx, &mut texture);
             }
