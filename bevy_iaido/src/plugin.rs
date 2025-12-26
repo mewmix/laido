@@ -99,6 +99,7 @@ impl Plugin for IaidoPlugin {
             .add_plugins(bevy_kira_audio::AudioPlugin)
             .add_plugins(hud::systems())
             .add_plugins(visuals::VisualsPlugin)
+            .add_plugins(touch::TouchControlsPlugin)
             .add_systems(Startup, (setup, setup_audio))
             .add_systems(Update, (
                 update_time,

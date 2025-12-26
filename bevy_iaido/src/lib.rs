@@ -13,6 +13,8 @@ mod hud;
 mod plugin;
 #[cfg(feature = "bevy")]
 mod visuals;
+#[cfg(feature = "bevy")]
+mod touch;
 
 pub use config::*;
 pub use types::*;
@@ -27,6 +29,8 @@ pub use logging::*;
 pub use plugin::*;
 #[cfg(feature = "bevy")]
 pub use visuals::*;
+#[cfg(feature = "bevy")]
+pub use touch::*;
 
 #[cfg(test)]
 mod tests {

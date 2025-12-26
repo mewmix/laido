@@ -35,7 +35,7 @@ const RESPAWN_FADE_SECONDS: f32 = 0.25;
 const HIT_RANGE: f32 = 320.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
-const MIN_SEPARATION: f32 = 20.0;
+const MIN_SEPARATION: f32 = 10.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
 const RUN_FRAME_TIME: f32 = 0.12;
@@ -61,6 +61,9 @@ const S_DOUBLE_FRAMES: [&str; 2] = ["heavy_spin.png", "heavy_spin_2.png"];
 const S_DOUBLE_RETURN: &str = "back_fast_stance.png";
 const S_DOUBLE_WINDOW_MS: u64 = 250;
 const SX_FRAMES: [&str; 2] = ["top_slash_heavy_1.png", "top_slash_heavy.png"];
+const PARRY_FRAME: &str = "parry_1.png";
+const PARRY_COUNTER_FRAME: &str = "parry_counter_attack_z.png";
+const PARRY_READY_SECONDS: f32 = 0.6;
 
 impl Plugin for VisualsPlugin {
     fn build(&self, app: &mut App) {
@@ -89,6 +92,7 @@ impl Plugin for VisualsPlugin {
                 animation_tester,
             ));
         app.add_systems(Update, (update_death_respawn, update_respawn_fade_in));
+        app.add_systems(Update, update_parry_state);
     }
 }
 
@@ -172,6 +176,7 @@ fn animation_tester(
     edit_mode: Res<AnimationEditMode>,
     mut block_state: ResMut<BlockState>,
     mut stance_lock: ResMut<StanceLock>,
+    mut parry_state: ResMut<ParryState>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
 
@@ -240,7 +245,17 @@ fn animation_tester(
             println!("Missing frame: {}", X_PRESS_FRAME);
         }
     }
-    if keys.just_pressed(KeyCode::KeyZ) {
+    if keys.just_pressed(KeyCode::KeyZ) && parry_state.ready {
+        debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "PARRY COUNTER".to_string() });
+        if let Some(idx) = frames.human.index_for_name(PARRY_COUNTER_FRAME) {
+            play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
+            attack_tx.send(AttackCue { actor: Actor::Human });
+        } else {
+            println!("Missing frame: {}", PARRY_COUNTER_FRAME);
+        }
+        parry_state.ready = false;
+        controller_state.z_up_armed = false;
+    } else if keys.just_pressed(KeyCode::KeyZ) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z DOWN".to_string() });
         if let Some(idx) = frames.human.index_for_name(Z_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
@@ -498,6 +513,12 @@ pub(crate) struct AiHealth {
     pub(crate) hits_remaining: u8,
 }
 
+#[derive(Resource)]
+pub(crate) struct ParryState {
+    pub(crate) ready: bool,
+    timer: Timer,
+}
+
 #[derive(Resource, Default)]
 struct MoveIntent {
     dir: f32,
@@ -576,6 +597,10 @@ fn setup_scene(
     commands.insert_resource(StanceLock::default());
     commands.insert_resource(GroundY::default());
     commands.insert_resource(AiHealth { hits_remaining: AI_HITS_TO_DEATH });
+    commands.insert_resource(ParryState {
+        ready: false,
+        timer: Timer::from_seconds(PARRY_READY_SECONDS, TimerMode::Once),
+    });
 
     let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
     let controller = load_controller(&controller_path);
@@ -682,14 +707,17 @@ fn handle_go_cue(
 fn handle_slash_cue(
     mut commands: Commands,
     mut slash_rx: EventReader<SlashCue>,
-    mut char_q: Query<(Entity, &Character, &OriginalTransform, &Transform, &mut Animator<Transform>, &mut FrameIndex, &mut Handle<Image>)>,
+    mut char_q: Query<(Entity, &Character, &OriginalTransform, &Transform, &mut Animator<Transform>, &mut FrameIndex, &mut Handle<Image>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
     controller_state: Res<CharacterControllerState>,
     frames: Res<FrameLibrary>,
     pos_q: Query<(&Character, &Transform)>,
 ) {
     for ev in slash_rx.read() {
-        for (entity, character, original, transform, mut animator, mut frame_idx, mut texture) in char_q.iter_mut() {
+        for (entity, character, original, transform, mut animator, mut frame_idx, mut texture, death, fade) in char_q.iter_mut() {
             if character.actor == ev.actor {
+                if matches!(character.actor, Actor::Ai) && (death.is_some() || fade.is_some()) {
+                    continue;
+                }
                 let start_pos = original.0;
                 let mut lunge_dist = if matches!(character.actor, Actor::Human) { 250.0 } else { -250.0 };
                 let mut opponent_x = None;
@@ -736,15 +764,15 @@ fn handle_slash_cue(
                 if matches!(character.actor, Actor::Ai) {
                     if let Some(seq) = ai_attack_sequence(&frames) {
                         let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
-                        play_sequence_with_return_index(
-                            Actor::Ai,
-                            seq,
-                            ai_idle_index(&frames),
-                            &frames,
-                            &mut char_q,
-                            &mut commands,
-                        );
+                        frame_idx.index = seq[0];
+                        apply_frame(actor_frames, &mut frame_idx, &mut texture);
+                        commands.entity(entity).remove::<FrameSequence>();
                         commands.entity(entity).remove::<ResetFrame>();
+                        commands.entity(entity).insert(FrameSequence {
+                            frames: seq,
+                            next_index: 1,
+                            timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
+                        });
                         commands.entity(entity).insert(ResetFrame {
                             timer: Timer::from_seconds(total, TimerMode::Once),
                             return_index: ai_idle_index(&frames),
@@ -786,7 +814,7 @@ fn handle_clash_cue(
     mut clash_rx: EventReader<ClashCue>,
     mut camera_q: Query<&mut CameraShake, With<MainCamera>>,
     mut commands: Commands,
-    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
     controller_state: Res<CharacterControllerState>,
     frames: Res<FrameLibrary>,
 ) {
@@ -794,19 +822,23 @@ fn handle_clash_cue(
         if let Ok(mut shake) = camera_q.get_single_mut() {
             shake.strength = 4.0; // Violent shake
         }
-        for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
+        for (entity, character, mut frame_idx, mut texture, death, fade) in char_q.iter_mut() {
             let actor_frames = frames_for_actor(character.actor, &frames);
+            if matches!(character.actor, Actor::Ai) && (death.is_some() || fade.is_some()) {
+                continue;
+            }
             if matches!(character.actor, Actor::Ai) {
                 if let Some(seq) = ai_attack_sequence(&frames) {
                     let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
-                    play_sequence_with_return_index(
-                        Actor::Ai,
-                        seq,
-                        ai_idle_index(&frames),
-                        &frames,
-                        &mut char_q,
-                        &mut commands,
-                    );
+                    frame_idx.index = seq[0];
+                    apply_frame(actor_frames, &mut frame_idx, &mut texture);
+                    commands.entity(entity).remove::<FrameSequence>();
+                    commands.entity(entity).remove::<ResetFrame>();
+                    commands.entity(entity).insert(FrameSequence {
+                        frames: seq,
+                        next_index: 1,
+                        timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
+                    });
                     commands.entity(entity).insert(ResetFrame {
                         timer: Timer::from_seconds(total, TimerMode::Once),
                         return_index: ai_idle_index(&frames),
@@ -1352,17 +1384,19 @@ fn update_ai_proximity(
     debug_state: Res<DebugState>,
     mut ai_state: ResMut<AiDemoState>,
     mut slash_tx: EventWriter<SlashCue>,
-    char_q: Query<(&Character, &Transform)>,
+    char_q: Query<(&Character, &Transform, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
     ai_state.cooldown = (ai_state.cooldown - time.delta_seconds()).max(0.0);
     let mut human = None;
     let mut ai = None;
-    for (character, transform) in char_q.iter() {
+    for (character, transform, death, fade) in char_q.iter() {
         if matches!(character.actor, Actor::Human) {
             human = Some(transform.translation);
         } else {
-            ai = Some(transform.translation);
+            if death.is_none() && fade.is_none() {
+                ai = Some(transform.translation);
+            }
         }
     }
     let (Some(h), Some(a)) = (human, ai) else { return; };
@@ -1381,11 +1415,13 @@ fn handle_hit_resolution(
     frames: Res<FrameLibrary>,
     mut frame_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     mut ai_health: ResMut<AiHealth>,
+    mut parry_state: ResMut<ParryState>,
     mut q: ParamSet<(
         Query<(&Character, &Transform)>,
         Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut Sprite, Option<&DeathRespawn>)>,
     )>,
     mut commands: Commands,
+    mut debug_input_tx: EventWriter<DebugInputCue>,
 ) {
     let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
     let mut events: Vec<Actor> = Vec::new();
@@ -1415,6 +1451,16 @@ fn handle_hit_resolution(
             Actor::Ai => block_state.ai_last_ms,
         };
         if now_ms.saturating_sub(last_block) <= BLOCK_WINDOW_MS {
+            if matches!(target, Actor::Human) && matches!(actor, Actor::Ai) {
+                parry_state.ready = true;
+                parry_state.timer.reset();
+                debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "PARRY READY".to_string() });
+                if let Some(idx) = frames.human.index_for_name(PARRY_FRAME) {
+                    play_frame(Actor::Human, idx, &frames, &mut frame_q, &mut commands);
+                } else {
+                    println!("Missing frame: {}", PARRY_FRAME);
+                }
+            }
             continue;
         }
         for (entity, character, mut transform, mut original, mut sprite, death) in q.p1().iter_mut() {
@@ -1498,6 +1544,9 @@ fn update_death_respawn(
     time: Res<Time>,
     frames: Res<FrameLibrary>,
     ground: Res<GroundY>,
+    mut ai_state: ResMut<AiDemoState>,
+    mut ai_health: ResMut<AiHealth>,
+    mut block_state: ResMut<BlockState>,
     mut commands: Commands,
     mut q: Query<(Entity, &mut Sprite, &mut DeathRespawn)>,
 ) {
@@ -1524,6 +1573,9 @@ fn update_death_respawn(
                         AI_IDLE_FRAME,
                         0.0,
                     );
+                    ai_state.cooldown = 0.0;
+                    ai_health.hits_remaining = AI_HITS_TO_DEATH;
+                    block_state.ai_last_ms = 0;
                     commands.entity(new_entity).insert(RespawnFadeIn {
                         timer: Timer::from_seconds(RESPAWN_FADE_SECONDS, TimerMode::Once),
                     });
@@ -1545,6 +1597,19 @@ fn update_respawn_fade_in(
         if fade.timer.finished() {
             commands.entity(entity).remove::<RespawnFadeIn>();
         }
+    }
+}
+
+fn update_parry_state(
+    time: Res<Time>,
+    mut parry_state: ResMut<ParryState>,
+) {
+    if !parry_state.ready {
+        return;
+    }
+    parry_state.timer.tick(time.delta());
+    if parry_state.timer.finished() {
+        parry_state.ready = false;
     }
 }
 
