@@ -27,6 +27,10 @@ const STAGGER_DISTANCE: f32 = 80.0;
 const MIN_SEPARATION: f32 = 130.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
+const RUN_FRAME_TIME: f32 = 0.12;
+const RUN_FRAMES: [&str; 4] = ["run_0.png", "run_1.png", "run_2.png", "run_3.png"];
+const STAGE_LEFT_X: f32 = -520.0;
+const STAGE_RIGHT_X: f32 = 520.0;
 const Z_PRESS_FRAME: &str = "up_attack_seq_1.png";
 const Z_RELEASE_FRAME: &str = "up_attack_seq_2.png";
 const X_PRESS_FRAME: &str = "up_attack_extended_seq_1.png";
@@ -43,6 +47,7 @@ const S_RELEASE_FRAME: &str = "fast-attack-forward.png";
 const S_DOUBLE_FRAMES: [&str; 2] = ["heavy_spin.png", "heavy_spin_2.png"];
 const S_DOUBLE_RETURN: &str = "back_fast_stance.png";
 const S_DOUBLE_WINDOW_MS: u64 = 250;
+const SX_FRAMES: [&str; 2] = ["top_slash_heavy_1.png", "top_slash_heavy.png"];
 
 impl Plugin for VisualsPlugin {
     fn build(&self, app: &mut App) {
@@ -62,6 +67,7 @@ impl Plugin for VisualsPlugin {
                 update_frame_sequences,
                 update_block_hold,
                 update_walk_input,
+                update_run_animation,
                 update_ai_proximity,
                 handle_hit_resolution,
                 update_hit_flash,
@@ -187,7 +193,25 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "SPACE DASH".to_string() });
         dash_forward(&mut move_q);
     }
-    if keys.just_pressed(KeyCode::KeyX) {
+    if keys.just_pressed(KeyCode::KeyX) && keys.pressed(KeyCode::KeyS) {
+        debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S+X DOWN".to_string() });
+        if let Some(seq) = frames.human.sequence_indices(&SX_FRAMES) {
+            if let Some(return_idx) = current_human_index(&mut char_q) {
+                play_sequence_with_return_index(
+                    Actor::Human,
+                    seq,
+                    return_idx,
+                    &frames,
+                    &mut char_q,
+                    &mut commands,
+                );
+                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+            }
+        } else {
+            println!("Missing one or more top slash heavy frames.");
+        }
+        controller_state.x_armed = false;
+    } else if keys.just_pressed(KeyCode::KeyX) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X DOWN".to_string() });
         if let Some(idx) = frames.human.index_for_name(X_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
@@ -410,6 +434,16 @@ struct BlockState {
     ai_last_ms: u64,
 }
 
+#[derive(Resource, Default)]
+struct MoveIntent {
+    dir: f32,
+}
+
+#[derive(Resource, Default)]
+struct RunAnimationFrames {
+    human: Vec<usize>,
+}
+
 #[derive(Resource, Clone)]
 pub(crate) struct CharacterControllerState {
     pub(crate) controller: CharacterController,
@@ -458,10 +492,15 @@ fn setup_scene(
     // Assets
     let human_frames = load_frames_for_folder(HUMAN_FRAMES_DIR, &asset_server);
     let ai_frames = load_frames_for_folder(AI_FRAMES_DIR, &asset_server);
+    let run_frames = human_frames
+        .sequence_indices(&RUN_FRAMES)
+        .unwrap_or_default();
     commands.insert_resource(FrameLibrary {
         human: human_frames,
         ai: ai_frames,
     });
+    commands.insert_resource(RunAnimationFrames { human: run_frames });
+    commands.insert_resource(MoveIntent::default());
 
     let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
     let controller = load_controller(&controller_path);
@@ -583,22 +622,22 @@ fn handle_slash_cue(
             if character.actor == ev.actor {
                 let start_pos = original.0;
                 let mut lunge_dist = if matches!(character.actor, Actor::Human) { 250.0 } else { -250.0 };
-                if matches!(character.actor, Actor::Ai) {
-                    let mut opponent_x = None;
-                    for (c, t) in pos_q.iter() {
-                        if matches!(c.actor, Actor::Human) {
-                            opponent_x = Some(t.translation.x);
-                            break;
-                        }
+                let mut opponent_x = None;
+                for (c, t) in pos_q.iter() {
+                    if c.actor != character.actor {
+                        opponent_x = Some(t.translation.x);
+                        break;
                     }
-                    if let Some(hx) = opponent_x {
-                        let current = transform.translation.x;
-                        let desired = current + lunge_dist;
-                        let min_x = hx + MIN_SEPARATION;
-                        if desired < min_x {
-                            lunge_dist = min_x - current;
-                        }
-                    }
+                }
+                if let Some(ox) = opponent_x {
+                    let current = transform.translation.x;
+                    let desired = current + lunge_dist;
+                    let clamped = if matches!(character.actor, Actor::Human) {
+                        clamp_human_x(desired, ox)
+                    } else {
+                        clamp_ai_x(desired, ox)
+                    };
+                    lunge_dist = clamped - current;
                 }
                 let end_pos = start_pos + Vec3::new(lunge_dist, 0.0, 0.0);
 
@@ -968,6 +1007,12 @@ struct FrameSequence {
     timer: Timer,
 }
 
+#[derive(Component)]
+struct RunCycle {
+    next_index: usize,
+    timer: Timer,
+}
+
 fn update_frame_sequences(
     time: Res<Time>,
     debug_state: Res<DebugState>,
@@ -1014,6 +1059,7 @@ fn play_frame_with_duration(
             frame_idx.index = index;
             apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
             commands.entity(entity).remove::<FrameSequence>();
+            commands.entity(entity).remove::<RunCycle>();
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(duration, TimerMode::Once),
                 return_index,
@@ -1036,6 +1082,7 @@ fn play_frame_with_return_index(
             frame_idx.index = index;
             apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
             commands.entity(entity).remove::<FrameSequence>();
+            commands.entity(entity).remove::<RunCycle>();
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(duration, TimerMode::Once),
                 return_index,
@@ -1065,6 +1112,7 @@ fn play_sequence(
                 next_index: 1,
                 timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
             });
+            commands.entity(entity).remove::<RunCycle>();
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(total, TimerMode::Once),
                 return_index,
@@ -1094,6 +1142,7 @@ fn play_sequence_with_return_index(
                 next_index: 1,
                 timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
             });
+            commands.entity(entity).remove::<RunCycle>();
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(total, TimerMode::Once),
                 return_index,
@@ -1292,13 +1341,18 @@ fn update_walk_input(
     keys: Res<ButtonInput<KeyCode>>,
     debug_state: Res<DebugState>,
     edit_mode: Res<AnimationEditMode>,
+    mut move_intent: ResMut<MoveIntent>,
     mut char_q: Query<(&Character, &mut Transform, &mut OriginalTransform)>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
-    if edit_mode.0 { return; }
+    if edit_mode.0 {
+        move_intent.dir = 0.0;
+        return;
+    }
     let mut dir: f32 = 0.0;
     if keys.pressed(KeyCode::ArrowRight) { dir += 1.0; }
     if keys.pressed(KeyCode::ArrowLeft) { dir -= 1.0; }
+    move_intent.dir = dir;
     if dir.abs() < f32::EPSILON { return; }
     let speed = 240.0;
     let delta = dir * speed * time.delta_seconds();
@@ -1318,6 +1372,70 @@ fn update_walk_input(
         if matches!(character.actor, Actor::Human) {
             transform.translation.x = clamped;
             original.0.x = transform.translation.x;
+        }
+    }
+}
+
+fn update_run_animation(
+    time: Res<Time>,
+    debug_state: Res<DebugState>,
+    edit_mode: Res<AnimationEditMode>,
+    move_intent: Res<MoveIntent>,
+    frames: Res<FrameLibrary>,
+    run_frames: Res<RunAnimationFrames>,
+    mut commands: Commands,
+    mut char_q: Query<
+        (
+            Entity,
+            &Character,
+            &mut FrameIndex,
+            &mut Handle<Image>,
+            &mut Sprite,
+            Option<&mut RunCycle>,
+        ),
+        (Without<FrameSequence>, Without<ResetFrame>),
+    >,
+) {
+    if !matches!(*debug_state, DebugState::Animation) { return; }
+    if edit_mode.0 { return; }
+    let dir = move_intent.dir;
+    for (entity, character, mut frame_idx, mut texture, mut sprite, run_cycle) in char_q.iter_mut() {
+        if !matches!(character.actor, Actor::Human) {
+            continue;
+        }
+        if dir.abs() < f32::EPSILON {
+            sprite.flip_x = false;
+            if run_cycle.is_some() {
+                commands.entity(entity).remove::<RunCycle>();
+            }
+            if let Some(idx) = frames.human.index_for_name(IDLE_FRAME) {
+                frame_idx.index = idx;
+                apply_frame(&frames.human, &mut frame_idx, &mut texture);
+            }
+            continue;
+        }
+        if run_frames.human.is_empty() {
+            continue;
+        }
+        sprite.flip_x = dir < 0.0;
+        let mut cycle = match run_cycle {
+            Some(cycle) => cycle,
+            None => {
+                frame_idx.index = run_frames.human[0];
+                apply_frame(&frames.human, &mut frame_idx, &mut texture);
+                commands.entity(entity).insert(RunCycle {
+                    next_index: 1,
+                    timer: Timer::from_seconds(RUN_FRAME_TIME, TimerMode::Repeating),
+                });
+                continue;
+            }
+        };
+        cycle.timer.tick(time.delta());
+        if cycle.timer.finished() {
+            let idx = cycle.next_index % run_frames.human.len();
+            frame_idx.index = run_frames.human[idx];
+            apply_frame(&frames.human, &mut frame_idx, &mut texture);
+            cycle.next_index = (cycle.next_index + 1) % run_frames.human.len();
         }
     }
 }
@@ -1346,10 +1464,12 @@ fn dash_forward(
 
 fn clamp_human_x(desired: f32, ai_x: f32) -> f32 {
     let max_x = ai_x - MIN_SEPARATION;
-    if desired > max_x { max_x } else { desired }
+    let clamped = if desired > max_x { max_x } else { desired };
+    if clamped < STAGE_LEFT_X { STAGE_LEFT_X } else { clamped }
 }
 
 fn clamp_ai_x(desired: f32, human_x: f32) -> f32 {
     let min_x = human_x + MIN_SEPARATION;
-    if desired < min_x { min_x } else { desired }
+    let clamped = if desired < min_x { min_x } else { desired };
+    if clamped > STAGE_RIGHT_X { STAGE_RIGHT_X } else { clamped }
 }

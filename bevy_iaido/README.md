@@ -45,8 +45,17 @@ Build
 - Example: cargo run --example iaido (desktop). For mobile, integrate with your runner.
 
 Tools
-- Sprite sheet labeler: `python3 tools/sprite_explorer.py assets/atlas/swordsman_laido_atlas.png --tile-w 64 --tile-h 64`
-- Optional: `--labels labels.json --out-dir sprite_exports` for saving labels and exporting tiles.
+- Grid slicer + labeler (default 2x2): `python3 tools/sprite_grid_slicer.py --input assets/atlas/*.png --out-dir assets/atlas/slices`
+- Black background sheets (Gemini): `python3 tools/sprite_grid_slicer.py --input assets/atlas/Gemini_Generated_Image_*.png --out-dir assets/atlas/white_samurai --grid 2x2 --bg black`
+- Generate HTML + labels: outputs `index.html` + `labels.json` in the output dir for preview/renaming.
+- Apply labels to rename files: `python3 tools/sprite_grid_slicer.py --apply-labels assets/atlas/slices/labels.json`
+- Rembg slicer (slower, better isolation): `python3 tools/rembg_grid_slicer.py --input assets/atlas/*.png --out-dir assets/atlas/slices --grid 2x2`
+
+Animation Playground (dev)
+- Default mode on launch; animation edit mode toggled with `D`.
+- Frame cycling (edit mode): `Left/Right` arrows.
+- Actions: `Z` press/release, `X` press/release, `S` press/release (double-tap S for heavy spin), `C` block (hold for second frame), `Space` dash.
+- Arrow keys move the player when edit mode is off; no direction flip (always left-to-right).
 
 Definition of Done (MVP)
 - New players understand in <30s; hesitation loses; players replay; timing variance matters; log replay deterministic.
