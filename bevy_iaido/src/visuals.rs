@@ -14,7 +14,19 @@ use crate::combat::correct_direction_for;
 
 pub struct VisualsPlugin;
 
-const CHARACTER_FRAMES_DIR: &str = "atlas/white_samurai";
+const HUMAN_FRAMES_DIR: &str = "atlas/white_samurai";
+const AI_FRAMES_DIR: &str = "atlas/red_samurai";
+const AI_IDLE_INDEX: usize = 3;
+const AI_ATTACK_INDEX: usize = 0;
+const AI_BLOCK_CHANCE: f32 = 0.25;
+const AI_ATTACK_RANGE: f32 = 220.0;
+const AI_ATTACK_COOLDOWN: f32 = 0.8;
+const HIT_RANGE: f32 = 180.0;
+const BLOCK_WINDOW_MS: u64 = 150;
+const STAGGER_DISTANCE: f32 = 80.0;
+const MIN_SEPARATION: f32 = 130.0;
+const SEQUENCE_FRAME_TIME: f32 = 0.2;
+const DASH_DISTANCE: f32 = 220.0;
 const Z_PRESS_FRAME: &str = "up_attack_seq_1.png";
 const Z_RELEASE_FRAME: &str = "up_attack_seq_2.png";
 const X_PRESS_FRAME: &str = "up_attack_extended_seq_1.png";
@@ -50,6 +62,9 @@ impl Plugin for VisualsPlugin {
                 update_frame_sequences,
                 update_block_hold,
                 update_walk_input,
+                update_ai_proximity,
+                handle_hit_resolution,
+                update_hit_flash,
                 animation_tester,
             ));
     }
@@ -75,11 +90,12 @@ fn update_character_stance(
     mut char_q: Query<(&Character, &mut FrameIndex, &mut Handle<Image>), Without<ResetFrame>>,
     debug_state: Res<DebugState>,
     time: Res<Time>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
 ) {
     if matches!(*debug_state, DebugState::Animation) { return; }
 
     for (character, mut frame_idx, mut texture) in char_q.iter_mut() {
+        let frames = frames_for_actor(character.actor, &frames);
         let (dir, _is_combo) = match character.actor {
             Actor::Human => {
                 if let Some(swipe) = &rt.machine.human_swipe {
@@ -97,12 +113,9 @@ fn update_character_stance(
             }
         };
 
-        // Handle Pulsing for Combo Stances
         if dir == GameDirection::UpDown {
-            // Pulse between Up (0) and Down (1)
             frame_idx.index = if (time.elapsed_seconds() * 5.0).sin() > 0.0 { 0 } else { 1 };
         } else if dir == GameDirection::LeftRight {
-            // Pulse between Left (2) and Right (3)
             frame_idx.index = if (time.elapsed_seconds() * 5.0).sin() > 0.0 { 2 } else { 3 };
         } else {
             frame_idx.index = get_sprite_index_from_dir(dir);
@@ -124,26 +137,29 @@ fn get_pose_name(index: usize) -> &'static str {
 fn animation_tester(
     keys: Res<ButtonInput<KeyCode>>,
     mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    mut move_q: Query<(&Character, &mut Transform, &mut OriginalTransform)>,
     debug_state: Res<DebugState>,
     mut slash_tx: EventWriter<SlashCue>,
     mut clash_tx: EventWriter<ClashCue>,
     mut debug_input_tx: EventWriter<DebugInputCue>,
     mut controller_state: ResMut<CharacterControllerState>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
     mut commands: Commands,
     time: Res<Time>,
     edit_mode: Res<AnimationEditMode>,
+    mut block_state: ResMut<BlockState>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
-    
+
     if edit_mode.0 {
         let mut delta = 0;
         if keys.just_pressed(KeyCode::ArrowLeft) { delta = -1; }
         if keys.just_pressed(KeyCode::ArrowRight) { delta = 1; }
-        
+
         if delta != 0 {
             for (_entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
                 if matches!(character.actor, Actor::Human) {
+                    let frames = &frames.human;
                     let new_idx = (frame_idx.index as i32 + delta)
                         .rem_euclid(frames.count() as i32) as usize;
                     frame_idx.index = new_idx;
@@ -154,39 +170,46 @@ fn animation_tester(
         }
     }
 
-    if keys.just_pressed(KeyCode::Space) {
-        if let Some(idx) = current_human_index(&mut char_q) {
-            controller_state.controller.slash_index = idx;
+    if edit_mode.0 {
+        if keys.just_pressed(KeyCode::Space) {
+            if let Some(idx) = current_human_index(&mut char_q) {
+                controller_state.controller.slash_index = idx;
+            }
+            slash_tx.send(SlashCue { actor: Actor::Human });
         }
-        slash_tx.send(SlashCue { actor: Actor::Human });
-    }
-    if keys.just_pressed(KeyCode::Enter) {
-        if let Some(idx) = current_human_index(&mut char_q) {
-            controller_state.controller.clash_index = idx;
+        if keys.just_pressed(KeyCode::Enter) {
+            if let Some(idx) = current_human_index(&mut char_q) {
+                controller_state.controller.clash_index = idx;
+            }
+            clash_tx.send(ClashCue);
         }
-        clash_tx.send(ClashCue);
+    } else if keys.just_pressed(KeyCode::Space) {
+        debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "SPACE DASH".to_string() });
+        dash_forward(&mut move_q);
     }
     if keys.just_pressed(KeyCode::KeyX) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X DOWN".to_string() });
-        if let Some(idx) = frames.index_for_name(X_PRESS_FRAME) {
+        if let Some(idx) = frames.human.index_for_name(X_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
             controller_state.x_armed = true;
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
         } else {
             println!("Missing frame: {}", X_PRESS_FRAME);
         }
     }
     if keys.just_pressed(KeyCode::KeyZ) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z DOWN".to_string() });
-        if let Some(idx) = frames.index_for_name(Z_PRESS_FRAME) {
+        if let Some(idx) = frames.human.index_for_name(Z_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
             controller_state.z_up_armed = true;
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
         } else {
             println!("Missing frame: {}", Z_PRESS_FRAME);
         }
     }
     if keys.just_released(KeyCode::KeyZ) && controller_state.z_up_armed {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z UP".to_string() });
-        if let Some(idx) = frames.index_for_name(Z_RELEASE_FRAME) {
+        if let Some(idx) = frames.human.index_for_name(Z_RELEASE_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
         } else {
             println!("Missing frame: {}", Z_RELEASE_FRAME);
@@ -195,8 +218,9 @@ fn animation_tester(
     }
     if keys.just_released(KeyCode::KeyX) && controller_state.x_armed {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X UP".to_string() });
-        if let Some(seq) = frames.sequence_indices(&[X_RELEASE_FRAME, X_FOLLOW_FRAME]) {
+        if let Some(seq) = frames.human.sequence_indices(&[X_RELEASE_FRAME, X_FOLLOW_FRAME]) {
             play_sequence(Actor::Human, seq, &frames, &mut char_q, &mut commands);
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
         } else {
             println!("Missing one or more extended release frames.");
         }
@@ -211,8 +235,8 @@ fn animation_tester(
         controller_state.s_double_active = is_double;
         if is_double {
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S DOUBLE".to_string() });
-            if let Some(seq) = frames.sequence_indices(&S_DOUBLE_FRAMES) {
-                if let Some(return_idx) = frames.index_for_name(S_DOUBLE_RETURN) {
+            if let Some(seq) = frames.human.sequence_indices(&S_DOUBLE_FRAMES) {
+                if let Some(return_idx) = frames.human.index_for_name(S_DOUBLE_RETURN) {
                     play_sequence_with_return_index(
                         Actor::Human,
                         seq,
@@ -221,13 +245,14 @@ fn animation_tester(
                         &mut char_q,
                         &mut commands,
                     );
+                    maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
                 } else {
                     println!("Missing frame: {}", S_DOUBLE_RETURN);
                 }
             } else {
                 println!("Missing one or more heavy spin frames.");
             }
-        } else if let Some(idx) = frames.index_for_name(S_PRESS_FRAME) {
+        } else if let Some(idx) = frames.human.index_for_name(S_PRESS_FRAME) {
             play_frame_with_return_index(
                 Actor::Human,
                 idx,
@@ -237,6 +262,7 @@ fn animation_tester(
                 &mut char_q,
                 &mut commands,
             );
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
         } else {
             println!("Missing frame: {}", S_PRESS_FRAME);
         }
@@ -244,8 +270,8 @@ fn animation_tester(
     if keys.just_released(KeyCode::KeyS) && controller_state.s_waiting_release && !controller_state.s_double_active {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S UP".to_string() });
         if let (Some(idx), Some(return_idx)) = (
-            frames.index_for_name(S_RELEASE_FRAME),
-            frames.index_for_name(S_PRESS_FRAME),
+            frames.human.index_for_name(S_RELEASE_FRAME),
+            frames.human.index_for_name(S_PRESS_FRAME),
         ) {
             play_frame_with_return_index(
                 Actor::Human,
@@ -256,15 +282,18 @@ fn animation_tester(
                 &mut char_q,
                 &mut commands,
             );
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
         } else {
             println!("Missing frame: {}", S_RELEASE_FRAME);
         }
         controller_state.s_waiting_release = false;
     }
     if keys.just_pressed(KeyCode::KeyC) {
+        let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+        block_state.human_last_ms = now_ms;
         if keys.pressed(KeyCode::ArrowLeft) {
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C+LEFT".to_string() });
-            if let Some(idx) = frames.index_for_name(BACK_HEAVY_FRAME) {
+            if let Some(idx) = frames.human.index_for_name(BACK_HEAVY_FRAME) {
                 play_frame_with_duration(
                     Actor::Human,
                     idx,
@@ -279,7 +308,7 @@ fn animation_tester(
             controller_state.block_hold_active = false;
         } else if keys.pressed(KeyCode::ArrowDown) {
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C+DOWN".to_string() });
-            if let Some(idx) = frames.index_for_name(BLOCK_DOWN_FRAME) {
+            if let Some(idx) = frames.human.index_for_name(BLOCK_DOWN_FRAME) {
                 play_frame_with_duration(
                     Actor::Human,
                     idx,
@@ -294,7 +323,7 @@ fn animation_tester(
             controller_state.block_hold_active = false;
         } else {
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C DOWN".to_string() });
-            if let Some(idx) = frames.index_for_name(BLOCK_PRESS_FRAME) {
+            if let Some(idx) = frames.human.index_for_name(BLOCK_PRESS_FRAME) {
                 play_frame_with_duration(
                     Actor::Human,
                     idx,
@@ -324,9 +353,9 @@ fn animation_tester(
     }
 }
 
-fn setup_characters(mut commands: Commands, frames: Res<CharacterFrames>) {
-    spawn_character(&mut commands, Actor::Human, Vec2::new(-300.0, -100.0), &frames);
-    spawn_character(&mut commands, Actor::Ai, Vec2::new(300.0, -100.0), &frames);
+fn setup_characters(mut commands: Commands, frames: Res<FrameLibrary>) {
+    spawn_character(&mut commands, Actor::Human, Vec2::new(-300.0, -100.0), &frames.human, IDLE_FRAME);
+    spawn_character(&mut commands, Actor::Ai, Vec2::new(300.0, -100.0), &frames.ai, "");
 }
 
 #[derive(Component)]
@@ -339,6 +368,11 @@ struct Lifetime(Timer);
 struct ResetFrame {
     timer: Timer,
     return_index: usize,
+}
+
+#[derive(Component)]
+struct HitFlash {
+    timer: Timer,
 }
 
 #[derive(Component)]
@@ -357,6 +391,23 @@ pub(crate) struct CharacterFrames {
     handles: Vec<Handle<Image>>,
     name_to_index: HashMap<String, usize>,
     names: Vec<String>,
+}
+
+#[derive(Resource)]
+pub(crate) struct FrameLibrary {
+    pub(crate) human: CharacterFrames,
+    pub(crate) ai: CharacterFrames,
+}
+
+#[derive(Resource, Default)]
+struct AiDemoState {
+    cooldown: f32,
+}
+
+#[derive(Resource, Default)]
+struct BlockState {
+    human_last_ms: u64,
+    ai_last_ms: u64,
 }
 
 #[derive(Resource, Clone)]
@@ -405,29 +456,16 @@ fn setup_scene(
     asset_server: Res<AssetServer>,
 ) {
     // Assets
-    let frame_paths = discover_frame_paths();
-    let mut name_to_index = HashMap::new();
-    let mut names = Vec::with_capacity(frame_paths.len());
-    let handles = frame_paths
-        .iter()
-        .enumerate()
-        .map(|(idx, p)| {
-            if let Some(name) = Path::new(p).file_name().and_then(|s| s.to_str()) {
-                name_to_index.insert(name.to_string(), idx);
-                names.push(name.to_string());
-            }
-            asset_server.load(p.clone())
-        })
-        .collect::<Vec<_>>();
-    commands.insert_resource(CharacterFrames {
-        handles,
-        name_to_index,
-        names,
+    let human_frames = load_frames_for_folder(HUMAN_FRAMES_DIR, &asset_server);
+    let ai_frames = load_frames_for_folder(AI_FRAMES_DIR, &asset_server);
+    commands.insert_resource(FrameLibrary {
+        human: human_frames,
+        ai: ai_frames,
     });
 
-    let controller_path = controller_path_for_folder(CHARACTER_FRAMES_DIR);
+    let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
     let controller = load_controller(&controller_path);
-    let controller_name = controller_name_from_folder(CHARACTER_FRAMES_DIR);
+    let controller_name = controller_name_from_folder(HUMAN_FRAMES_DIR);
     commands.insert_resource(CharacterControllerState {
         controller,
         controller_path,
@@ -441,6 +479,8 @@ fn setup_scene(
         s_waiting_release: false,
         s_double_active: false,
     });
+    commands.insert_resource(AiDemoState::default());
+    commands.insert_resource(BlockState::default());
 
     // Camera
     commands.spawn((
@@ -449,11 +489,12 @@ fn setup_scene(
         CameraShake { strength: 0.0, decay: 3.0 },
     ));
 
-    // Background - Dark Atmosphere
+    // Background - Burning Village (static)
+    let bg_texture = asset_server.load("background/burning_village_0.png");
     commands.spawn(SpriteBundle {
+        texture: bg_texture,
         sprite: Sprite {
-            color: Color::srgb(0.05, 0.05, 0.1),
-            custom_size: Some(Vec2::new(2000.0, 2000.0)),
+            custom_size: Some(Vec2::new(2200.0, 1400.0)),
             ..default()
         },
         transform: Transform::from_xyz(0.0, 0.0, -10.0),
@@ -472,19 +513,15 @@ fn setup_scene(
     });
 }
 
-// Separate system to spawn once assets are ready or just use the resource in Update
-// Actually I can spawn them in a system that runs after Startup or just wait for them.
-// Let's create a system `spawn_players` that runs once resource is available.
-
 fn spawn_character(
     commands: &mut Commands,
     actor: Actor,
     pos: Vec2,
     frames: &CharacterFrames,
+    idle_name: &str,
 ) {
     let base_scale = Vec3::splat(0.4); // Scale down 512x512
 
-    // Idle Animation: Breathing (Scale Y)
     let idle_tween = Tween::new(
         EaseMethod::EaseFunction(EaseFunction::SineInOut),
         Duration::from_millis(1500),
@@ -498,7 +535,11 @@ fn spawn_character(
 
     let flip_x = matches!(actor, Actor::Ai);
 
-    let idle_idx = frames.index_for_name(IDLE_FRAME).unwrap_or(0);
+    let idle_idx = if idle_name.is_empty() {
+        AI_IDLE_INDEX % frames.count()
+    } else {
+        frames.index_for_name(idle_name).unwrap_or(0)
+    };
     let idle_texture = frames.get(idle_idx).unwrap_or_default();
     commands.spawn((
         SpriteBundle {
@@ -532,16 +573,33 @@ fn handle_go_cue(
 fn handle_slash_cue(
     mut commands: Commands,
     mut slash_rx: EventReader<SlashCue>,
-    mut char_q: Query<(Entity, &Character, &OriginalTransform, &mut Animator<Transform>, &mut FrameIndex, &mut Handle<Image>)>,
+    mut char_q: Query<(Entity, &Character, &OriginalTransform, &Transform, &mut Animator<Transform>, &mut FrameIndex, &mut Handle<Image>)>,
     controller_state: Res<CharacterControllerState>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
+    pos_q: Query<(&Character, &Transform)>,
 ) {
     for ev in slash_rx.read() {
-        for (entity, character, original, mut animator, mut frame_idx, mut texture) in char_q.iter_mut() {
+        for (entity, character, original, transform, mut animator, mut frame_idx, mut texture) in char_q.iter_mut() {
             if character.actor == ev.actor {
-                // Attacker lunges
                 let start_pos = original.0;
-                let lunge_dist = if matches!(character.actor, Actor::Human) { 250.0 } else { -250.0 };
+                let mut lunge_dist = if matches!(character.actor, Actor::Human) { 250.0 } else { -250.0 };
+                if matches!(character.actor, Actor::Ai) {
+                    let mut opponent_x = None;
+                    for (c, t) in pos_q.iter() {
+                        if matches!(c.actor, Actor::Human) {
+                            opponent_x = Some(t.translation.x);
+                            break;
+                        }
+                    }
+                    if let Some(hx) = opponent_x {
+                        let current = transform.translation.x;
+                        let desired = current + lunge_dist;
+                        let min_x = hx + MIN_SEPARATION;
+                        if desired < min_x {
+                            lunge_dist = min_x - current;
+                        }
+                    }
+                }
                 let end_pos = start_pos + Vec3::new(lunge_dist, 0.0, 0.0);
 
                 let lunge = Tween::new(
@@ -561,16 +619,22 @@ fn handle_slash_cue(
                         end: start_pos,
                     },
                 );
-                
+
                 let attack_seq = lunge.then(ret);
                 animator.set_tweenable(attack_seq);
 
-                // Change to attack frame
-                frame_idx.index = controller_state.controller.slash_index;
-                apply_frame(&frames, &mut frame_idx, &mut texture);
+                let actor_frames = frames_for_actor(character.actor, &frames);
+                if matches!(character.actor, Actor::Ai) {
+                    frame_idx.index = AI_ATTACK_INDEX;
+                } else {
+                    frame_idx.index = controller_state.controller.slash_index;
+                }
+                apply_frame(actor_frames, &mut frame_idx, &mut texture);
                 commands.entity(entity).insert(ResetFrame {
                     timer: Timer::from_seconds(0.5, TimerMode::Once),
-                    return_index: 0,
+                    return_index: if matches!(character.actor, Actor::Ai) {
+                        AI_IDLE_INDEX % actor_frames.count()
+                    } else { 0 },
                 });
             }
         }
@@ -580,14 +644,14 @@ fn handle_slash_cue(
 fn reset_character_frames(
     mut commands: Commands,
     time: Res<Time>,
-    mut char_q: Query<(Entity, &mut FrameIndex, &mut Handle<Image>, &mut ResetFrame), With<Character>>,
-    frames: Res<CharacterFrames>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>, &mut ResetFrame)>,
+    frames: Res<FrameLibrary>,
 ) {
-    for (entity, mut frame_idx, mut texture, mut reset) in char_q.iter_mut() {
+    for (entity, character, mut frame_idx, mut texture, mut reset) in char_q.iter_mut() {
         reset.timer.tick(time.delta());
         if reset.timer.finished() {
             frame_idx.index = reset.return_index;
-            apply_frame(&frames, &mut frame_idx, &mut texture);
+            apply_frame(frames_for_actor(character.actor, &frames), &mut frame_idx, &mut texture);
             commands.entity(entity).remove::<ResetFrame>();
         }
     }
@@ -597,23 +661,29 @@ fn handle_clash_cue(
     mut clash_rx: EventReader<ClashCue>,
     mut camera_q: Query<&mut CameraShake, With<MainCamera>>,
     mut commands: Commands,
-    mut char_q: Query<(Entity, &mut FrameIndex, &mut Handle<Image>), With<Character>>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     controller_state: Res<CharacterControllerState>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
 ) {
     for _ in clash_rx.read() {
         if let Ok(mut shake) = camera_q.get_single_mut() {
             shake.strength = 4.0; // Violent shake
         }
-        for (entity, mut frame_idx, mut texture) in char_q.iter_mut() {
-            frame_idx.index = controller_state.controller.clash_index;
-            apply_frame(&frames, &mut frame_idx, &mut texture);
+        for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
+            let actor_frames = frames_for_actor(character.actor, &frames);
+            frame_idx.index = if matches!(character.actor, Actor::Ai) {
+                AI_ATTACK_INDEX
+            } else {
+                controller_state.controller.clash_index
+            };
+            apply_frame(actor_frames, &mut frame_idx, &mut texture);
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(0.2, TimerMode::Once),
-                return_index: 0,
+                return_index: if matches!(character.actor, Actor::Ai) {
+                    AI_IDLE_INDEX % actor_frames.count()
+                } else { 0 },
             });
         }
-        // Spawn Spark
         commands.spawn((
             SpriteBundle {
                 sprite: Sprite {
@@ -622,10 +692,9 @@ fn handle_clash_cue(
                     ..default()
                 },
                 transform: Transform::from_xyz(0.0, 50.0, 10.0)
-                    .with_rotation(Quat::from_rotation_z(0.78)), // 45 deg
+                    .with_rotation(Quat::from_rotation_z(0.78)),
                 ..default()
             },
-            // Fade out tween
             Animator::new(Tween::new(
                 EaseMethod::EaseFunction(EaseFunction::QuadraticOut),
                 Duration::from_millis(200),
@@ -655,7 +724,7 @@ fn apply_camera_shake(
             shake.strength -= shake.decay * time.delta_seconds() * 60.0;
             if shake.strength < 0.0 {
                 shake.strength = 0.0;
-                transform.translation = Vec3::ZERO; // Reset
+                transform.translation = Vec3::ZERO;
             }
         } else {
             transform.translation = Vec3::ZERO;
@@ -685,7 +754,7 @@ fn handle_input_detected(
                     GameDirection::UpDown => "UP+DOWN",
                     GameDirection::LeftRight => "LEFT+RIGHT",
                 };
-                
+
                 let start_pos = transform.translation + Vec3::new(0.0, 150.0, 10.0);
                 let end_pos = start_pos + Vec3::new(0.0, 200.0, 10.0);
                 let color = if matches!(character.actor, Actor::Human) { Color::srgb(0.0, 1.0, 1.0) } else { Color::srgb(1.0, 0.65, 0.0) };
@@ -808,8 +877,8 @@ fn current_human_index(
     None
 }
 
-fn discover_frame_paths() -> Vec<String> {
-    let rel_parent = Path::new(CHARACTER_FRAMES_DIR);
+fn discover_frame_paths(folder: &str) -> Vec<String> {
+    let rel_parent = Path::new(folder);
     let atlas_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("assets")
         .join(rel_parent);
@@ -829,6 +898,28 @@ fn discover_frame_paths() -> Vec<String> {
     paths.sort();
     paths.dedup();
     paths
+}
+
+fn load_frames_for_folder(folder: &str, asset_server: &AssetServer) -> CharacterFrames {
+    let frame_paths = discover_frame_paths(folder);
+    let mut name_to_index = HashMap::new();
+    let mut names = Vec::with_capacity(frame_paths.len());
+    let handles = frame_paths
+        .iter()
+        .enumerate()
+        .map(|(idx, p)| {
+            if let Some(name) = Path::new(p).file_name().and_then(|s| s.to_str()) {
+                name_to_index.insert(name.to_string(), idx);
+                names.push(name.to_string());
+            }
+            asset_server.load(p.clone())
+        })
+        .collect::<Vec<_>>();
+    CharacterFrames {
+        handles,
+        name_to_index,
+        names,
+    }
 }
 
 #[derive(Component)]
@@ -863,6 +954,13 @@ fn apply_frame(frames: &CharacterFrames, frame_idx: &mut FrameIndex, texture: &m
     }
 }
 
+fn frames_for_actor<'a>(actor: Actor, frames: &'a FrameLibrary) -> &'a CharacterFrames {
+    match actor {
+        Actor::Human => &frames.human,
+        Actor::Ai => &frames.ai,
+    }
+}
+
 #[derive(Component)]
 struct FrameSequence {
     frames: Vec<usize>,
@@ -873,12 +971,12 @@ struct FrameSequence {
 fn update_frame_sequences(
     time: Res<Time>,
     debug_state: Res<DebugState>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
     mut commands: Commands,
-    mut q: Query<(Entity, &mut FrameSequence, &mut FrameIndex, &mut Handle<Image>)>,
+    mut q: Query<(Entity, &Character, &mut FrameSequence, &mut FrameIndex, &mut Handle<Image>)>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
-    for (entity, mut seq, mut frame_idx, mut texture) in q.iter_mut() {
+    for (entity, character, mut seq, mut frame_idx, mut texture) in q.iter_mut() {
         seq.timer.tick(time.delta());
         if seq.timer.finished() {
             if seq.next_index >= seq.frames.len() {
@@ -886,7 +984,7 @@ fn update_frame_sequences(
                 continue;
             }
             frame_idx.index = seq.frames[seq.next_index];
-            apply_frame(&frames, &mut frame_idx, &mut texture);
+            apply_frame(frames_for_actor(character.actor, &frames), &mut frame_idx, &mut texture);
             seq.next_index += 1;
         }
     }
@@ -895,7 +993,7 @@ fn update_frame_sequences(
 fn play_frame(
     actor: Actor,
     index: usize,
-    frames: &CharacterFrames,
+    frames: &FrameLibrary,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     commands: &mut Commands,
 ) {
@@ -906,7 +1004,7 @@ fn play_frame_with_duration(
     actor: Actor,
     index: usize,
     duration: f32,
-    frames: &CharacterFrames,
+    frames: &FrameLibrary,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     commands: &mut Commands,
 ) {
@@ -914,7 +1012,7 @@ fn play_frame_with_duration(
         if character.actor == actor {
             let return_index = frame_idx.index;
             frame_idx.index = index;
-            apply_frame(frames, &mut frame_idx, &mut texture);
+            apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
             commands.entity(entity).remove::<FrameSequence>();
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(duration, TimerMode::Once),
@@ -929,14 +1027,14 @@ fn play_frame_with_return_index(
     index: usize,
     duration: f32,
     return_index: usize,
-    frames: &CharacterFrames,
+    frames: &FrameLibrary,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     commands: &mut Commands,
 ) {
     for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
         if character.actor == actor {
             frame_idx.index = index;
-            apply_frame(frames, &mut frame_idx, &mut texture);
+            apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
             commands.entity(entity).remove::<FrameSequence>();
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(duration, TimerMode::Once),
@@ -949,7 +1047,7 @@ fn play_frame_with_return_index(
 fn play_sequence(
     actor: Actor,
     frames_seq: Vec<usize>,
-    frames: &CharacterFrames,
+    frames: &FrameLibrary,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     commands: &mut Commands,
 ) {
@@ -959,13 +1057,13 @@ fn play_sequence(
     for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
         if character.actor == actor {
             let return_index = frame_idx.index;
-            let total = 0.12 * (frames_seq.len() as f32);
+            let total = SEQUENCE_FRAME_TIME * (frames_seq.len() as f32);
             frame_idx.index = frames_seq[0];
-            apply_frame(frames, &mut frame_idx, &mut texture);
+            apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
             commands.entity(entity).insert(FrameSequence {
                 frames: frames_seq.clone(),
                 next_index: 1,
-                timer: Timer::from_seconds(0.12, TimerMode::Repeating),
+                timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
             });
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(total, TimerMode::Once),
@@ -979,22 +1077,22 @@ fn play_sequence_with_return_index(
     actor: Actor,
     frames_seq: Vec<usize>,
     return_index: usize,
-    frames: &CharacterFrames,
+    frames: &FrameLibrary,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     commands: &mut Commands,
 ) {
     if frames_seq.is_empty() {
         return;
     }
-    let total = 0.12 * (frames_seq.len() as f32);
+    let total = SEQUENCE_FRAME_TIME * (frames_seq.len() as f32);
     for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
         if character.actor == actor {
             frame_idx.index = frames_seq[0];
-            apply_frame(frames, &mut frame_idx, &mut texture);
+            apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
             commands.entity(entity).insert(FrameSequence {
                 frames: frames_seq.clone(),
                 next_index: 1,
-                timer: Timer::from_seconds(0.12, TimerMode::Repeating),
+                timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
             });
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(total, TimerMode::Once),
@@ -1009,7 +1107,7 @@ fn update_block_hold(
     keys: Res<ButtonInput<KeyCode>>,
     debug_state: Res<DebugState>,
     mut controller_state: ResMut<CharacterControllerState>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
     mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     mut commands: Commands,
 ) {
@@ -1025,7 +1123,7 @@ fn update_block_hold(
     if controller_state.block_hold_second || controller_state.block_hold_elapsed < BLOCK_HOLD_THRESHOLD {
         return;
     }
-    if let Some(idx) = frames.index_for_name(BLOCK_HOLD_FRAME) {
+    if let Some(idx) = frames.human.index_for_name(BLOCK_HOLD_FRAME) {
         play_frame_with_duration(
             Actor::Human,
             idx,
@@ -1041,6 +1139,154 @@ fn update_block_hold(
     }
 }
 
+fn update_ai_proximity(
+    time: Res<Time>,
+    debug_state: Res<DebugState>,
+    mut ai_state: ResMut<AiDemoState>,
+    mut slash_tx: EventWriter<SlashCue>,
+    char_q: Query<(&Character, &Transform)>,
+) {
+    if !matches!(*debug_state, DebugState::Animation) { return; }
+    ai_state.cooldown = (ai_state.cooldown - time.delta_seconds()).max(0.0);
+    let mut human = None;
+    let mut ai = None;
+    for (character, transform) in char_q.iter() {
+        if matches!(character.actor, Actor::Human) {
+            human = Some(transform.translation);
+        } else {
+            ai = Some(transform.translation);
+        }
+    }
+    let (Some(h), Some(a)) = (human, ai) else { return; };
+    if ai_state.cooldown > 0.0 { return; }
+    if (h.x - a.x).abs() <= AI_ATTACK_RANGE {
+        slash_tx.send(SlashCue { actor: Actor::Ai });
+        ai_state.cooldown = AI_ATTACK_COOLDOWN;
+    }
+}
+
+fn handle_hit_resolution(
+    mut slash_rx: EventReader<SlashCue>,
+    time: Res<Time>,
+    block_state: Res<BlockState>,
+    mut q: ParamSet<(
+        Query<(&Character, &Transform)>,
+        Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut Sprite)>,
+    )>,
+    mut commands: Commands,
+) {
+    let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+    for ev in slash_rx.read() {
+        let target = match ev.actor {
+            Actor::Human => Actor::Ai,
+            Actor::Ai => Actor::Human,
+        };
+        let mut attacker_x = None;
+        let mut target_x = None;
+        for (character, transform) in q.p0().iter() {
+            if character.actor == ev.actor {
+                attacker_x = Some(transform.translation.x);
+            } else if character.actor == target {
+                target_x = Some(transform.translation.x);
+            }
+        }
+        let (Some(ax), Some(tx)) = (attacker_x, target_x) else { continue; };
+        if (ax - tx).abs() > HIT_RANGE {
+            continue;
+        }
+        let last_block = match target {
+            Actor::Human => block_state.human_last_ms,
+            Actor::Ai => block_state.ai_last_ms,
+        };
+        if now_ms.saturating_sub(last_block) <= BLOCK_WINDOW_MS {
+            stagger_actor(ev.actor, tx, &mut q.p1());
+            continue;
+        }
+        for (entity, character, mut transform, mut original, mut sprite) in q.p1().iter_mut() {
+            if character.actor == target {
+                sprite.color = Color::srgb(1.0, 0.2, 0.2);
+                commands.entity(entity).insert(HitFlash { timer: Timer::from_seconds(0.12, TimerMode::Once) });
+                stagger_target(character.actor, ax, &mut transform, &mut original);
+            }
+        }
+    }
+}
+
+fn update_hit_flash(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Sprite, &mut HitFlash)>,
+) {
+    for (entity, mut sprite, mut flash) in q.iter_mut() {
+        flash.timer.tick(time.delta());
+        if flash.timer.finished() {
+            sprite.color = Color::srgb(1.0, 1.0, 1.0);
+            commands.entity(entity).remove::<HitFlash>();
+        }
+    }
+}
+
+fn maybe_ai_block(
+    frames: &FrameLibrary,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    commands: &mut Commands,
+    block_state: &mut BlockState,
+    time: &Time,
+) {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    if rng.gen::<f32>() > AI_BLOCK_CHANCE {
+        return;
+    }
+    block_state.ai_last_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+    play_frame_with_return_index(
+        Actor::Ai,
+        AI_ATTACK_INDEX,
+        0.25,
+        AI_IDLE_INDEX % frames.ai.count(),
+        frames,
+        char_q,
+        commands,
+    );
+}
+
+fn stagger_actor(
+    actor: Actor,
+    other_x: f32,
+    char_q: &mut Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut Sprite)>,
+) {
+    for (_entity, character, mut transform, mut original, _sprite) in char_q.iter_mut() {
+        if character.actor == actor {
+            let dir = if transform.translation.x < other_x { -1.0 } else { 1.0 };
+            let desired = transform.translation.x + (dir * STAGGER_DISTANCE);
+            let clamped = if matches!(actor, Actor::Human) {
+                clamp_human_x(desired, other_x)
+            } else {
+                clamp_ai_x(desired, other_x)
+            };
+            transform.translation.x = clamped;
+            original.0.x = clamped;
+        }
+    }
+}
+
+fn stagger_target(
+    actor: Actor,
+    other_x: f32,
+    transform: &mut Transform,
+    original: &mut OriginalTransform,
+) {
+    let dir = if transform.translation.x < other_x { -1.0 } else { 1.0 };
+    let desired = transform.translation.x + (dir * STAGGER_DISTANCE);
+    let clamped = if matches!(actor, Actor::Human) {
+        clamp_human_x(desired, other_x)
+    } else {
+        clamp_ai_x(desired, other_x)
+    };
+    transform.translation.x = clamped;
+    original.0.x = clamped;
+}
+
 fn update_walk_input(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -1050,16 +1296,60 @@ fn update_walk_input(
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
     if edit_mode.0 { return; }
-    let mut dir = 0.0;
+    let mut dir: f32 = 0.0;
     if keys.pressed(KeyCode::ArrowRight) { dir += 1.0; }
     if keys.pressed(KeyCode::ArrowLeft) { dir -= 1.0; }
     if dir.abs() < f32::EPSILON { return; }
     let speed = 240.0;
     let delta = dir * speed * time.delta_seconds();
+    let mut human_x = None;
+    let mut ai_x = None;
+    for (character, transform, _original) in char_q.iter() {
+        if matches!(character.actor, Actor::Human) {
+            human_x = Some(transform.translation.x);
+        } else {
+            ai_x = Some(transform.translation.x);
+        }
+    }
+    let Some(hx) = human_x else { return; };
+    let Some(ax) = ai_x else { return; };
+    let clamped = clamp_human_x(hx + delta, ax);
     for (character, mut transform, mut original) in char_q.iter_mut() {
         if matches!(character.actor, Actor::Human) {
-            transform.translation.x += delta;
+            transform.translation.x = clamped;
             original.0.x = transform.translation.x;
         }
     }
+}
+
+fn dash_forward(
+    move_q: &mut Query<(&Character, &mut Transform, &mut OriginalTransform)>,
+) {
+    let mut human_x = None;
+    let mut ai_x = None;
+    for (character, transform, _original) in move_q.iter() {
+        if matches!(character.actor, Actor::Human) {
+            human_x = Some(transform.translation.x);
+        } else {
+            ai_x = Some(transform.translation.x);
+        }
+    }
+    let (Some(hx), Some(ax)) = (human_x, ai_x) else { return; };
+    let clamped = clamp_human_x(hx + DASH_DISTANCE, ax);
+    for (character, mut transform, mut original) in move_q.iter_mut() {
+        if matches!(character.actor, Actor::Human) {
+            transform.translation.x = clamped;
+            original.0.x = transform.translation.x;
+        }
+    }
+}
+
+fn clamp_human_x(desired: f32, ai_x: f32) -> f32 {
+    let max_x = ai_x - MIN_SEPARATION;
+    if desired > max_x { max_x } else { desired }
+}
+
+fn clamp_ai_x(desired: f32, human_x: f32) -> f32 {
+    let min_x = human_x + MIN_SEPARATION;
+    if desired < min_x { min_x } else { desired }
 }

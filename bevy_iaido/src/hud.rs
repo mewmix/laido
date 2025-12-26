@@ -7,7 +7,7 @@ use std::time::Duration;
 use crate::combat::correct_direction_for;
 use crate::plugin::{DuelRuntime, GoCue, DebugState, AnimationEditMode};
 use crate::types::{DuelPhase, MatchState, Outcome, Actor};
-use crate::visuals::{Character, CharacterControllerState, CharacterFrames, FrameIndex};
+use crate::visuals::{Character, CharacterControllerState, FrameIndex, FrameLibrary};
 
 pub fn systems() -> impl Plugin {
     HudPlugin
@@ -327,7 +327,7 @@ fn update_debug_text(
     debug_state: Res<DebugState>,
     char_q: Query<(&Character, &FrameIndex)>,
     controller_state: Res<CharacterControllerState>,
-    frames: Res<CharacterFrames>,
+    frames: Res<FrameLibrary>,
     edit_mode: Res<AnimationEditMode>,
 ) {
     if let Ok((mut text, mut vis)) = query.get_single_mut() {
@@ -342,7 +342,7 @@ fn update_debug_text(
                 for (c, frame_idx) in char_q.iter() {
                     if matches!(c.actor, Actor::Human) { idx = frame_idx.index; }
                 }
-                let name = frames.name_for_index(idx).unwrap_or("unknown");
+                let name = frames.human.name_for_index(idx).unwrap_or("unknown");
                 text.sections[0].value = format!(
                     "ANIMATION PLAYGROUND\nFolder: {}\nIndex: {} ({})\nEdit: {}\nSlash: {}\nClash: {}\n[Left/Right] Cycle Frame (Edit Mode)\n[Space] Set Slash + Play\n[Enter] Set Clash + Play\n[Z] Up Attack: seq_1 press / seq_2 release\n[X] Extended: seq_1 press / seq_2+seq_3 release\n[C] Block: tap = frame1, hold = frame1+frame2\n[S] Duel: press=duel, release=fast, double=spin\n[D] Toggle Edit Mode",
                     controller_state.controller_name,
