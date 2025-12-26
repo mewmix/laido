@@ -11,6 +11,7 @@ use crate::{Actor, AttackCue, ClashCue, GoCue, SlashCue, InputDetected, DebugInp
 use crate::types::Direction as GameDirection;
 use crate::plugin::{DuelRuntime, DebugState, AnimationEditMode};
 use crate::combat::correct_direction_for;
+use bevy::window::PrimaryWindow;
 
 pub struct VisualsPlugin;
 
@@ -31,6 +32,8 @@ const RUN_FRAME_TIME: f32 = 0.12;
 const RUN_FRAMES: [&str; 4] = ["run_0.png", "run_1.png", "run_2.png", "run_3.png"];
 const STAGE_LEFT_X: f32 = -520.0;
 const STAGE_RIGHT_X: f32 = 520.0;
+const BG_IMAGE_SIZE: Vec2 = Vec2::new(3168.0, 1344.0);
+const GROUND_OFFSET_Y: f32 = 120.0;
 const Z_PRESS_FRAME: &str = "up_attack_seq_1.png";
 const Z_RELEASE_FRAME: &str = "up_attack_seq_2.png";
 const X_PRESS_FRAME: &str = "up_attack_extended_seq_1.png";
@@ -68,6 +71,7 @@ impl Plugin for VisualsPlugin {
                 update_block_hold,
                 update_walk_input,
                 update_run_animation,
+                update_background_layout,
                 update_ai_proximity,
                 handle_hit_resolution,
                 update_hit_flash,
@@ -387,8 +391,9 @@ fn animation_tester(
 }
 
 fn setup_characters(mut commands: Commands, frames: Res<FrameLibrary>) {
-    spawn_character(&mut commands, Actor::Human, Vec2::new(-300.0, -100.0), &frames.human, IDLE_FRAME);
-    spawn_character(&mut commands, Actor::Ai, Vec2::new(300.0, -100.0), &frames.ai, "");
+    let start_y = -180.0;
+    spawn_character(&mut commands, Actor::Human, Vec2::new(-300.0, start_y), &frames.human, IDLE_FRAME);
+    spawn_character(&mut commands, Actor::Ai, Vec2::new(300.0, start_y), &frames.ai, "");
 }
 
 #[derive(Component)]
@@ -417,6 +422,14 @@ pub struct CameraShake {
 #[derive(Component)]
 pub struct Character {
     pub actor: Actor,
+}
+
+#[derive(Component)]
+struct Grounded;
+
+#[derive(Component)]
+struct BackgroundSprite {
+    size: Vec2,
 }
 
 #[derive(Resource)]
@@ -457,6 +470,9 @@ struct RunAnimationFrames {
 struct StanceLock {
     index: Option<usize>,
 }
+
+#[derive(Resource, Default)]
+struct GroundY(f32);
 
 #[derive(Resource, Clone)]
 pub(crate) struct CharacterControllerState {
@@ -516,6 +532,7 @@ fn setup_scene(
     commands.insert_resource(RunAnimationFrames { human: run_frames });
     commands.insert_resource(MoveIntent::default());
     commands.insert_resource(StanceLock::default());
+    commands.insert_resource(GroundY::default());
 
     let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
     let controller = load_controller(&controller_path);
@@ -545,26 +562,19 @@ fn setup_scene(
 
     // Background - Burning Village (static)
     let bg_texture = asset_server.load("background/burning_village_0.png");
-    commands.spawn(SpriteBundle {
-        texture: bg_texture,
-        sprite: Sprite {
-            custom_size: Some(Vec2::new(2200.0, 1400.0)),
+    commands.spawn((
+        SpriteBundle {
+            texture: bg_texture,
+            sprite: Sprite {
+                custom_size: Some(BG_IMAGE_SIZE),
+                ..default()
+            },
+            transform: Transform::from_xyz(0.0, 0.0, -10.0),
             ..default()
         },
-        transform: Transform::from_xyz(0.0, 0.0, -10.0),
-        ..default()
-    });
+        BackgroundSprite { size: BG_IMAGE_SIZE },
+    ));
 
-    // Floor / Ground Line
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            color: Color::srgb(0.1, 0.1, 0.15),
-            custom_size: Some(Vec2::new(2000.0, 400.0)),
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, -300.0, -5.0),
-        ..default()
-    });
 }
 
 fn spawn_character(
@@ -608,6 +618,7 @@ fn spawn_character(
         },
         FrameIndex { index: idle_idx },
         Character { actor },
+        Grounded,
         OriginalTransform(Vec3::new(pos.x, pos.y, 0.0)),
         Animator::new(idle_tween),
     ));
@@ -832,6 +843,29 @@ fn handle_input_detected(
                 ));
             }
         }
+    }
+}
+
+fn update_background_layout(
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut ground: ResMut<GroundY>,
+    mut q: ParamSet<(
+        Query<(&BackgroundSprite, &mut Sprite, &mut Transform)>,
+        Query<(&mut Transform, &mut OriginalTransform), With<Grounded>>,
+    )>,
+) {
+    let Ok(window) = windows.get_single() else { return; };
+    let width = window.resolution.width();
+    for (bg, mut sprite, mut transform) in q.p0().iter_mut() {
+        let scale = width / bg.size.x;
+        let height = bg.size.y * scale;
+        sprite.custom_size = Some(Vec2::new(width, height));
+        transform.translation.y = 0.0;
+        ground.0 = -height * 0.5 + GROUND_OFFSET_Y;
+    }
+    for (mut transform, mut original) in q.p1().iter_mut() {
+        transform.translation.y = ground.0;
+        original.0.y = ground.0;
     }
 }
 

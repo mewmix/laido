@@ -88,7 +88,7 @@ impl Plugin for IaidoPlugin {
         app.init_resource::<IaidoSettings>()
             .init_resource::<DebugState>()
             .init_resource::<AnimationEditMode>()
-            .insert_resource(ClearColor(Color::BLACK))
+            .insert_resource(ClearColor(Color::srgba(0.0, 0.0, 0.0, 0.0)))
             .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
