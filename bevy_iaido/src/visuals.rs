@@ -30,16 +30,16 @@ impl Plugin for VisualsPlugin {
 
 fn get_sprite_index(opening: Opening) -> usize {
     match opening {
-        Opening::Up => 5,
-        Opening::Down => 9,
-        Opening::Left => 3,
-        Opening::Right => 4,
-        Opening::UpLeft => 0,
-        Opening::UpRight => 6,
-        Opening::DownLeft => 11,
-        Opening::DownRight => 12,
-        Opening::UpDown => 2,
-        Opening::LeftRight => 7,
+        Opening::Up => 5,        // High-right guard (tight)
+        Opening::Down => 9,      // Low-left guard
+        Opening::Left => 3,      // Mid-left guard
+        Opening::Right => 4,     // Mid/high-right guard (extended)
+        Opening::UpLeft => 0,    // High-left guard (tight)
+        Opening::UpRight => 6,   // Mid/high-right guard (neutral)
+        Opening::DownLeft => 11, // Low-left guard (variant)
+        Opening::DownRight => 12,// Low-right guard
+        Opening::UpDown => 2,    // High-left guard (neutral) - generic ready
+        Opening::LeftRight => 7, // High-right guard (front-ish) - generic ready
     }
 }
 

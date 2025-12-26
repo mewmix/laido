@@ -264,6 +264,11 @@ fn drive_ai(
     mut input_tx: EventWriter<InputDetected>,
     time: Res<Time>,
 ) {
+    // If AI has already swiped for this round, do nothing
+    if rt.machine.ai_swipe.is_some() {
+        return;
+    }
+
     let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
     // Plan AI on GO
     if let Some(go) = rt.machine.go_ts_ms {
