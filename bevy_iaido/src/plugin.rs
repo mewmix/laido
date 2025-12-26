@@ -44,6 +44,10 @@ pub struct SlashCue { pub actor: Actor }
 
 #[cfg(feature = "bevy")]
 #[derive(Event)]
+pub struct AttackCue { pub actor: Actor }
+
+#[cfg(feature = "bevy")]
+#[derive(Event)]
 pub struct ClashCue;
 
 use crate::types::Direction as GameDirection;
@@ -88,6 +92,7 @@ impl Plugin for IaidoPlugin {
             .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
+            .add_event::<AttackCue>()
             .add_event::<ClashCue>()
             .add_event::<InputDetected>()
             .add_event::<DebugInputCue>()

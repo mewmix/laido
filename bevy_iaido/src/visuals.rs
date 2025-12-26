@@ -7,7 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use crate::{Actor, ClashCue, GoCue, SlashCue, InputDetected, DebugInputCue};
+use crate::{Actor, AttackCue, ClashCue, GoCue, SlashCue, InputDetected, DebugInputCue};
 use crate::types::Direction as GameDirection;
 use crate::plugin::{DuelRuntime, DebugState, AnimationEditMode};
 use crate::combat::correct_direction_for;
@@ -19,12 +19,12 @@ const AI_FRAMES_DIR: &str = "atlas/red_samurai";
 const AI_IDLE_INDEX: usize = 3;
 const AI_ATTACK_INDEX: usize = 0;
 const AI_BLOCK_CHANCE: f32 = 0.25;
-const AI_ATTACK_RANGE: f32 = 220.0;
+const AI_ATTACK_RANGE: f32 = 360.0;
 const AI_ATTACK_COOLDOWN: f32 = 0.8;
-const HIT_RANGE: f32 = 180.0;
+const HIT_RANGE: f32 = 320.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
-const MIN_SEPARATION: f32 = 130.0;
+const MIN_SEPARATION: f32 = 60.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
 const RUN_FRAME_TIME: f32 = 0.12;
@@ -43,7 +43,7 @@ const BLOCK_HOLD_THRESHOLD: f32 = 0.2;
 const BLOCK_DOWN_FRAME: &str = "block_down.png";
 const BACK_HEAVY_FRAME: &str = "back_heavy_stance.png";
 const S_PRESS_FRAME: &str = "duel.png";
-const S_RELEASE_FRAME: &str = "fast-attack-forward.png";
+const S_RELEASE_FRAMES: [&str; 2] = ["fast-attack-forward.png", "fast_attack_forward1.png"];
 const S_DOUBLE_FRAMES: [&str; 2] = ["heavy_spin.png", "heavy_spin_2.png"];
 const S_DOUBLE_RETURN: &str = "back_fast_stance.png";
 const S_DOUBLE_WINDOW_MS: u64 = 250;
@@ -147,6 +147,7 @@ fn animation_tester(
     debug_state: Res<DebugState>,
     mut slash_tx: EventWriter<SlashCue>,
     mut clash_tx: EventWriter<ClashCue>,
+    mut attack_tx: EventWriter<AttackCue>,
     mut debug_input_tx: EventWriter<DebugInputCue>,
     mut controller_state: ResMut<CharacterControllerState>,
     frames: Res<FrameLibrary>,
@@ -207,6 +208,7 @@ fn animation_tester(
                     &mut commands,
                 );
                 maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+                attack_tx.send(AttackCue { actor: Actor::Human });
             }
         } else {
             println!("Missing one or more top slash heavy frames.");
@@ -236,6 +238,7 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z UP".to_string() });
         if let Some(idx) = frames.human.index_for_name(Z_RELEASE_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
+            attack_tx.send(AttackCue { actor: Actor::Human });
         } else {
             println!("Missing frame: {}", Z_RELEASE_FRAME);
         }
@@ -246,6 +249,7 @@ fn animation_tester(
         if let Some(seq) = frames.human.sequence_indices(&[X_RELEASE_FRAME, X_FOLLOW_FRAME]) {
             play_sequence(Actor::Human, seq, &frames, &mut char_q, &mut commands);
             maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+            attack_tx.send(AttackCue { actor: Actor::Human });
         } else {
             println!("Missing one or more extended release frames.");
         }
@@ -272,6 +276,7 @@ fn animation_tester(
                         &mut commands,
                     );
                     maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+                    attack_tx.send(AttackCue { actor: Actor::Human });
                 } else {
                     println!("Missing frame: {}", S_DOUBLE_RETURN);
                 }
@@ -296,22 +301,23 @@ fn animation_tester(
     }
     if keys.just_released(KeyCode::KeyS) && controller_state.s_waiting_release && !controller_state.s_double_active {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S UP".to_string() });
-        if let (Some(idx), Some(return_idx)) = (
-            frames.human.index_for_name(S_RELEASE_FRAME),
-            frames.human.index_for_name(S_PRESS_FRAME),
-        ) {
-            play_frame_with_return_index(
-                Actor::Human,
-                idx,
-                0.4,
-                return_idx,
-                &frames,
-                &mut char_q,
-                &mut commands,
-            );
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+        if let Some(seq) = frames.human.sequence_indices(&S_RELEASE_FRAMES) {
+            if let Some(return_idx) = frames.human.index_for_name(S_PRESS_FRAME) {
+                play_sequence_with_return_index(
+                    Actor::Human,
+                    seq,
+                    return_idx,
+                    &frames,
+                    &mut char_q,
+                    &mut commands,
+                );
+                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+                attack_tx.send(AttackCue { actor: Actor::Human });
+            } else {
+                println!("Missing frame: {}", S_PRESS_FRAME);
+            }
         } else {
-            println!("Missing frame: {}", S_RELEASE_FRAME);
+            println!("Missing one or more S release frames.");
         }
         controller_state.s_waiting_release = false;
     }
@@ -1225,6 +1231,7 @@ fn update_ai_proximity(
 
 fn handle_hit_resolution(
     mut slash_rx: EventReader<SlashCue>,
+    mut attack_rx: EventReader<AttackCue>,
     time: Res<Time>,
     block_state: Res<BlockState>,
     mut q: ParamSet<(
@@ -1234,15 +1241,19 @@ fn handle_hit_resolution(
     mut commands: Commands,
 ) {
     let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
-    for ev in slash_rx.read() {
-        let target = match ev.actor {
+    let mut events: Vec<Actor> = Vec::new();
+    events.extend(slash_rx.read().map(|ev| ev.actor));
+    events.extend(attack_rx.read().map(|ev| ev.actor));
+
+    for actor in events {
+        let target = match actor {
             Actor::Human => Actor::Ai,
             Actor::Ai => Actor::Human,
         };
         let mut attacker_x = None;
         let mut target_x = None;
         for (character, transform) in q.p0().iter() {
-            if character.actor == ev.actor {
+            if character.actor == actor {
                 attacker_x = Some(transform.translation.x);
             } else if character.actor == target {
                 target_x = Some(transform.translation.x);
@@ -1257,7 +1268,7 @@ fn handle_hit_resolution(
             Actor::Ai => block_state.ai_last_ms,
         };
         if now_ms.saturating_sub(last_block) <= BLOCK_WINDOW_MS {
-            stagger_actor(ev.actor, tx, &mut q.p1());
+            stagger_actor(actor, tx, &mut q.p1());
             continue;
         }
         for (entity, character, mut transform, mut original, mut sprite) in q.p1().iter_mut() {
