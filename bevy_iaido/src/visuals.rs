@@ -20,12 +20,12 @@ const AI_FRAMES_DIR: &str = "atlas/red_samurai";
 const AI_IDLE_INDEX: usize = 3;
 const AI_ATTACK_INDEX: usize = 0;
 const AI_BLOCK_CHANCE: f32 = 0.25;
-const AI_ATTACK_RANGE: f32 = 360.0;
+const AI_ATTACK_RANGE: f32 = 120.0;
 const AI_ATTACK_COOLDOWN: f32 = 0.8;
-const HIT_RANGE: f32 = 320.0;
+const HIT_RANGE: f32 = 150.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
-const MIN_SEPARATION: f32 = 60.0;
+const MIN_SEPARATION: f32 = 45.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
 const RUN_FRAME_TIME: f32 = 0.12;
@@ -613,13 +613,13 @@ fn spawn_character(
                 flip_x,
                 ..default()
             },
-            transform: Transform::from_xyz(pos.x, pos.y, 0.0).with_scale(base_scale),
+            transform: Transform::from_xyz(pos.x, pos.y, if matches!(actor, Actor::Human) { 1.0 } else { 0.0 }).with_scale(base_scale),
             ..default()
         },
         FrameIndex { index: idle_idx },
         Character { actor },
         Grounded,
-        OriginalTransform(Vec3::new(pos.x, pos.y, 0.0)),
+        OriginalTransform(Vec3::new(pos.x, pos.y, if matches!(actor, Actor::Human) { 1.0 } else { 0.0 })),
         Animator::new(idle_tween),
     ));
 }
