@@ -44,6 +44,14 @@ Build
 - Requires Rust and Bevy 0.14.
 - Example: cargo run --example iaido (desktop). For mobile, integrate with your runner.
 
+Android Build
+- Install `cargo-apk`: `cargo install cargo-apk`
+- Install target: `rustup target add aarch64-linux-android`
+- Set NDK root (example): `export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125`
+- Build APK: `cargo apk build`
+- Install to device: `adb install target/debug/apk/bevy_iaido.apk`
+
+
 Tools
 - Grid slicer + labeler (default 2x2): `python3 tools/sprite_grid_slicer.py --input assets/atlas/*.png --out-dir assets/atlas/slices`
 - Black background sheets (Gemini): `python3 tools/sprite_grid_slicer.py --input assets/atlas/Gemini_Generated_Image_*.png --out-dir assets/atlas/white_samurai --grid 2x2 --bg black`
