@@ -31,7 +31,7 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "IAIDO MVP".into(),
-                        resolution: (720., 1280.).into(),
+                        resolution: (1280., 720.).into(),
                         resizable: false,
                         ..default()
                     }),

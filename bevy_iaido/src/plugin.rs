@@ -56,12 +56,13 @@ pub struct InputDetected {
 }
 
 #[cfg(feature = "bevy")]
-#[derive(Resource, Default)]
-pub struct DebugMode(pub bool);
-
-#[cfg(feature = "bevy")]
-#[derive(Resource, Default)]
-pub struct AnimationTestMode(pub bool);
+#[derive(Resource, Default, PartialEq, Eq, Clone, Copy, Debug)]
+pub enum DebugState {
+    #[default]
+    Off,
+    Stats,
+    Animation,
+}
 
 #[cfg(feature = "bevy")]
 pub struct IaidoPlugin;
@@ -70,8 +71,7 @@ pub struct IaidoPlugin;
 impl Plugin for IaidoPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<IaidoSettings>()
-            .init_resource::<DebugMode>()
-            .init_resource::<AnimationTestMode>()
+            .init_resource::<DebugState>()
             .insert_resource(ClearColor(Color::BLACK))
             .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
@@ -89,30 +89,23 @@ impl Plugin for IaidoPlugin {
                 advance_duel,
                 react_outcomes,
                 react_audio,
-                toggle_debug_mode,
-                toggle_animation_test,
+                toggle_debug_state,
             ));
     }
 }
 
 #[cfg(feature = "bevy")]
-fn toggle_debug_mode(
+fn toggle_debug_state(
     keys: Res<ButtonInput<KeyCode>>,
-    mut debug_mode: ResMut<DebugMode>,
+    mut state: ResMut<DebugState>,
 ) {
     if keys.just_pressed(KeyCode::KeyD) {
-        debug_mode.0 = !debug_mode.0;
-    }
-}
-
-#[cfg(feature = "bevy")]
-fn toggle_animation_test(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut test_mode: ResMut<AnimationTestMode>,
-) {
-    if keys.just_pressed(KeyCode::KeyT) {
-        test_mode.0 = !test_mode.0;
-        println!("Animation Test Mode: {}", test_mode.0);
+        *state = match *state {
+            DebugState::Off => DebugState::Stats,
+            DebugState::Stats => DebugState::Animation,
+            DebugState::Animation => DebugState::Off,
+        };
+        println!("Debug State: {:?}", *state);
     }
 }
 

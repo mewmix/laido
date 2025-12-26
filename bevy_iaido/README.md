@@ -44,5 +44,9 @@ Build
 - Requires Rust and Bevy 0.14.
 - Example: cargo run --example iaido (desktop). For mobile, integrate with your runner.
 
+Tools
+- Sprite sheet labeler: `python3 tools/sprite_explorer.py assets/atlas/swordsman_laido_atlas.png --tile-w 64 --tile-h 64`
+- Optional: `--labels labels.json --out-dir sprite_exports` for saving labels and exporting tiles.
+
 Definition of Done (MVP)
 - New players understand in <30s; hesitation loses; players replay; timing variance matters; log replay deterministic.

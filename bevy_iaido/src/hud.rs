@@ -5,9 +5,9 @@ use bevy_tweening::lens::*;
 use std::time::Duration;
 
 use crate::combat::correct_direction_for;
-use crate::plugin::{DuelRuntime, GoCue, DebugMode, AnimationTestMode};
-use crate::types::{Direction, DuelPhase, MatchState, Outcome, Actor};
-use crate::visuals::Character;
+use crate::plugin::{DuelRuntime, GoCue, DebugState};
+use crate::types::{DuelPhase, MatchState, Outcome, Actor};
+use crate::visuals::{Character, CharacterControllerState, FrameIndex};
 
 pub fn systems() -> impl Plugin {
     HudPlugin
@@ -297,26 +297,36 @@ fn handle_restart_input(
 fn update_debug_text(
     mut query: Query<(&mut Text, &mut Visibility), With<DebugText>>,
     rt: Res<DuelRuntime>,
-    debug_mode: Res<DebugMode>,
-    test_mode: Res<AnimationTestMode>,
-    char_q: Query<(&Character, &TextureAtlas)>,
+    debug_state: Res<DebugState>,
+    char_q: Query<(&Character, &FrameIndex)>,
+    controller_state: Res<CharacterControllerState>,
 ) {
     if let Ok((mut text, mut vis)) = query.get_single_mut() {
-        if test_mode.0 {
-            *vis = Visibility::Visible;
-            let mut idx = 0;
-            for (c, atlas) in char_q.iter() {
-                if matches!(c.actor, Actor::Human) { idx = atlas.index; }
+        match *debug_state {
+            DebugState::Off => {
+                *vis = Visibility::Hidden;
+                return;
             }
-            text.sections[0].value = format!("ANIMATION TEST MODE\nIndex: {}\n(Use Left/Right to cycle)", idx);
-            return;
+            DebugState::Animation => {
+                *vis = Visibility::Visible;
+                let mut idx = 0;
+                for (c, frame_idx) in char_q.iter() {
+                    if matches!(c.actor, Actor::Human) { idx = frame_idx.index; }
+                }
+                text.sections[0].value = format!(
+                    "ANIMATION PLAYGROUND\nFolder: {}\nIndex: {}\nSlash: {}\nClash: {}\n[Left/Right] Cycle Frame\n[Space] Set Slash + Play\n[Enter] Set Clash + Play\n[Z] Up Attack: seq_1 press / seq_2 release\n[X] Extended: seq_1 press / seq_2+seq_3 release\n[C] Block: tap = frame1, hold = frame1+frame2\n[S] Save Controller",
+                    controller_state.controller_name,
+                    idx,
+                    controller_state.controller.slash_index,
+                    controller_state.controller.clash_index,
+                );
+                return;
+            }
+            DebugState::Stats => {
+                *vis = Visibility::Visible;
+                // fall through to stats logic
+            }
         }
-
-        if !debug_mode.0 {
-            *vis = Visibility::Hidden;
-            return;
-        }
-        *vis = Visibility::Visible;
 
         let m = &rt.machine;
         
