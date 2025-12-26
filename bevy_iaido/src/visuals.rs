@@ -1302,7 +1302,6 @@ fn handle_hit_resolution(
             Actor::Ai => block_state.ai_last_ms,
         };
         if now_ms.saturating_sub(last_block) <= BLOCK_WINDOW_MS {
-            stagger_actor(actor, tx, &mut q.p1());
             continue;
         }
         for (entity, character, mut transform, mut original, mut sprite) in q.p1().iter_mut() {
