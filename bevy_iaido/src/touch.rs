@@ -31,8 +31,13 @@ impl Plugin for TouchControlsPlugin {
         app.init_resource::<ButtonInput<VirtualKey>>()
            .init_resource::<TouchControlsState>()
            .add_systems(Startup, setup_touch_ui)
-           .add_systems(Update, (update_virtual_keys, toggle_touch_ui));
+           .add_systems(PreUpdate, (reset_virtual_keys, update_virtual_keys).chain())
+           .add_systems(Update, toggle_touch_ui);
     }
+}
+
+fn reset_virtual_keys(mut inputs: ResMut<ButtonInput<VirtualKey>>) {
+    inputs.clear();
 }
 
 fn toggle_touch_ui(

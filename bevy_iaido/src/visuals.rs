@@ -28,6 +28,8 @@ const AI_ATTACK_FRAMES: [&str; 3] = [
 const AI_BLOCK_CHANCE: f32 = 0.0;
 const AI_ATTACK_RANGE: f32 = 140.0;
 const AI_ATTACK_COOLDOWN: f32 = 1.0;
+const AI_APPROACH_SPEED: f32 = 120.0;
+const AI_STOP_DISTANCE: f32 = 120.0;
 const AI_DEATH_FRAMES: [&str; 4] = ["red__tile_0.png", "red__tile_1.png", "red__tile_2.png", "red__tile_3.png"];
 const AI_HITS_TO_DEATH: u8 = 2;
 const DEATH_FADE_SECONDS: f32 = 0.25;
@@ -86,8 +88,10 @@ impl Plugin for VisualsPlugin {
                 update_block_hold,
                 update_walk_input,
                 update_run_animation,
+                update_ai_approach,
                 update_background_layout,
                 update_ai_proximity,
+                update_ai_idle,
                 handle_hit_resolution,
                 update_hit_flash,
                 animation_tester,
@@ -1409,6 +1413,62 @@ fn update_ai_proximity(
     if (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
         ai_state.cooldown = AI_ATTACK_COOLDOWN;
+    }
+}
+
+fn update_ai_approach(
+    time: Res<Time>,
+    debug_state: Res<DebugState>,
+    edit_mode: Res<AnimationEditMode>,
+    mut char_q: Query<(&Character, &mut Transform, &mut OriginalTransform, Option<&FrameSequence>, Option<&ResetFrame>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+) {
+    if !matches!(*debug_state, DebugState::Animation) { return; }
+    if edit_mode.0 { return; }
+    let mut human_x = None;
+    let mut ai_x = None;
+    for (character, transform, _original, _seq, _reset, death, fade) in char_q.iter() {
+        if matches!(character.actor, Actor::Human) {
+            human_x = Some(transform.translation.x);
+        } else if death.is_none() && fade.is_none() {
+            ai_x = Some(transform.translation.x);
+        }
+    }
+    let (Some(hx), Some(ax)) = (human_x, ai_x) else { return; };
+    let dist = (hx - ax).abs();
+    if dist <= AI_STOP_DISTANCE {
+        return;
+    }
+    let dir = if hx > ax { 1.0 } else { -1.0 };
+    let delta = dir * AI_APPROACH_SPEED * time.delta_seconds();
+    let desired = ax + delta;
+    let clamped = clamp_ai_x(desired, hx);
+    for (character, mut transform, mut original, seq, reset, death, fade) in char_q.iter_mut() {
+        if !matches!(character.actor, Actor::Ai) { continue; }
+        if death.is_some() || fade.is_some() { continue; }
+        if seq.is_some() || reset.is_some() { continue; }
+        transform.translation.x = clamped;
+        original.0.x = clamped;
+    }
+}
+
+fn update_ai_idle(
+    debug_state: Res<DebugState>,
+    frames: Res<FrameLibrary>,
+    mut char_q: Query<(&Character, &mut FrameIndex, &mut Handle<Image>, Option<&FrameSequence>, Option<&ResetFrame>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+) {
+    if !matches!(*debug_state, DebugState::Animation) { return; }
+    for (character, mut frame_idx, mut texture, seq, reset, death, fade) in char_q.iter_mut() {
+        if !matches!(character.actor, Actor::Ai) {
+            continue;
+        }
+        if seq.is_some() || reset.is_some() || death.is_some() || fade.is_some() {
+            continue;
+        }
+        let idle_idx = ai_idle_index(&frames);
+        if frame_idx.index != idle_idx {
+            frame_idx.index = idle_idx;
+            apply_frame(&frames.ai, &mut frame_idx, &mut texture);
+        }
     }
 }
 
