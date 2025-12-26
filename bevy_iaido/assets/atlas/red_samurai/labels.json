@@ -1,0 +1,34 @@
+[
+  {
+    "sheet": "red.png",
+    "tile_index": 0,
+    "row": 0,
+    "col": 0,
+    "file": "red__tile_0.png",
+    "label": ""
+  },
+  {
+    "sheet": "red.png",
+    "tile_index": 1,
+    "row": 0,
+    "col": 1,
+    "file": "red__tile_1.png",
+    "label": ""
+  },
+  {
+    "sheet": "red.png",
+    "tile_index": 2,
+    "row": 1,
+    "col": 0,
+    "file": "red__tile_2.png",
+    "label": ""
+  },
+  {
+    "sheet": "red.png",
+    "tile_index": 3,
+    "row": 1,
+    "col": 1,
+    "file": "red__tile_3.png",
+    "label": ""
+  }
+]
