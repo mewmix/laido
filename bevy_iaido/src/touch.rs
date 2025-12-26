@@ -8,21 +8,48 @@ pub enum VirtualKey {
 #[derive(Component)]
 pub struct VirtualKeyBtn(pub VirtualKey);
 
+#[derive(Component)]
+struct TouchControlsRoot;
+
+#[derive(Resource)]
+pub struct TouchControlsState {
+    pub enabled: bool,
+}
+
+impl Default for TouchControlsState {
+    fn default() -> Self {
+        // Enable by default on WASM and mobile targets
+        let enabled = cfg!(target_arch = "wasm32") || cfg!(target_os = "android") || cfg!(target_os = "ios");
+        Self { enabled }
+    }
+}
+
 pub struct TouchControlsPlugin;
 
 impl Plugin for TouchControlsPlugin {
     fn build(&self, app: &mut App) {
-        // Register the custom input type
-        // Bevy's InputPlugin doesn't automatically add it for custom types unless we add InputPlugin::<VirtualKey>::default() which doesn't exist?
-        // Actually Bevy's InputPlugin is for KeyCode, MouseButton, GamepadButton.
-        // We can just init the resource Input<VirtualKey>.
-        app.init_resource::<ButtonInput<VirtualKey>>() // Bevy 0.14 uses ButtonInput instead of Input
+        app.init_resource::<ButtonInput<VirtualKey>>()
+           .init_resource::<TouchControlsState>()
            .add_systems(Startup, setup_touch_ui)
-           .add_systems(PreUpdate, update_virtual_keys);
+           .add_systems(Update, (update_virtual_keys, toggle_touch_ui));
     }
 }
 
-fn setup_touch_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn toggle_touch_ui(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut state: ResMut<TouchControlsState>,
+    mut q: Query<&mut Visibility, With<TouchControlsRoot>>,
+) {
+    if keys.just_pressed(KeyCode::KeyT) {
+        state.enabled = !state.enabled;
+        for mut vis in q.iter_mut() {
+            *vis = if state.enabled { Visibility::Visible } else { Visibility::Hidden };
+        }
+        println!("Touch Controls: {}", state.enabled);
+    }
+}
+
+fn setup_touch_ui(mut commands: Commands, asset_server: Res<AssetServer>, state: Res<TouchControlsState>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let button_style = Style {
         width: Val::Px(64.0),
@@ -40,17 +67,23 @@ fn setup_touch_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         color: Color::WHITE,
     };
 
+    let visibility = if state.enabled { Visibility::Visible } else { Visibility::Hidden };
+
     // Container for controls
-    commands.spawn(NodeBundle {
-        style: Style {
-            position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                ..default()
+            },
+            visibility,
+            z_index: ZIndex::Global(100), // On top of everything
             ..default()
         },
-        z_index: ZIndex::Global(100), // On top of everything
-        ..default()
-    }).with_children(|parent| {
+        TouchControlsRoot,
+    )).with_children(|parent| {
         // Right side: Actions
         parent.spawn(NodeBundle {
             style: Style {

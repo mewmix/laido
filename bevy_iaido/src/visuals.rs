@@ -29,8 +29,6 @@ const AI_BLOCK_CHANCE: f32 = 0.0;
 const AI_ATTACK_RANGE: f32 = 140.0;
 const AI_ATTACK_COOLDOWN: f32 = 1.0;
 const AI_DEATH_FRAMES: [&str; 4] = ["red__tile_0.png", "red__tile_1.png", "red__tile_2.png", "red__tile_3.png"];
-const RESPAWN_FLASH_COLOR: Color = Color::srgb(0.9, 0.95, 1.0);
-const RESPAWN_FLASH_SECONDS: f32 = 0.2;
 const AI_HITS_TO_DEATH: u8 = 2;
 const DEATH_FADE_SECONDS: f32 = 0.25;
 const RESPAWN_FADE_SECONDS: f32 = 0.25;
@@ -83,6 +81,8 @@ impl Plugin for VisualsPlugin {
                 reset_character_frames,
                 update_character_stance,
                 update_frame_sequences,
+            ))
+            .add_systems(Update, (
                 update_block_hold,
                 update_walk_input,
                 update_run_animation,
@@ -90,7 +90,6 @@ impl Plugin for VisualsPlugin {
                 update_ai_proximity,
                 handle_hit_resolution,
                 update_hit_flash,
-                update_respawn_flash,
                 animation_tester,
             ));
         app.add_systems(Update, (update_death_respawn, update_respawn_fade_in));
@@ -162,16 +161,23 @@ fn get_pose_name(index: usize) -> &'static str {
     }
 }
 
+use bevy::ecs::system::SystemParam;
+
+#[derive(SystemParam)]
+struct AnimationEvents<'w> {
+    slash: EventWriter<'w, SlashCue>,
+    clash: EventWriter<'w, ClashCue>,
+    attack: EventWriter<'w, AttackCue>,
+    debug_input: EventWriter<'w, DebugInputCue>,
+}
+
 fn animation_tester(
     mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     mut move_q: Query<(&Character, &mut Transform, &mut OriginalTransform)>,
     keys: Res<ButtonInput<KeyCode>>,
     vkeys: Res<ButtonInput<VirtualKey>>,
     debug_state: Res<DebugState>,
-    mut slash_tx: EventWriter<SlashCue>,
-    mut clash_tx: EventWriter<ClashCue>,
-    mut attack_tx: EventWriter<AttackCue>,
-    mut debug_input_tx: EventWriter<DebugInputCue>,
+    events: AnimationEvents,
     mut controller_state: ResMut<CharacterControllerState>,
     frames: Res<FrameLibrary>,
     mut commands: Commands,
@@ -181,6 +187,8 @@ fn animation_tester(
     mut stance_lock: ResMut<StanceLock>,
     mut parry_state: ResMut<ParryState>,
 ) {
+    let AnimationEvents { slash: mut slash_tx, clash: mut clash_tx, attack: mut attack_tx, debug_input: mut debug_input_tx } = events;
+
     if !matches!(*debug_state, DebugState::Animation) { return; }
 
     if edit_mode.0 {
@@ -441,13 +449,6 @@ struct ResetFrame {
 #[derive(Component)]
 struct HitFlash {
     timer: Timer,
-}
-
-#[derive(Component)]
-struct RespawnFlash {
-    delay: Timer,
-    flash: Timer,
-    active: bool,
 }
 
 #[derive(Component)]
@@ -1131,6 +1132,7 @@ pub struct FrameIndex {
 
 impl CharacterFrames {
     fn count(&self) -> usize { self.handles.len().max(1) }
+    #[allow(dead_code)]
     fn primary(&self) -> Option<Handle<Image>> { self.handles.first().cloned() }
     fn get(&self, index: usize) -> Option<Handle<Image>> {
         if self.handles.is_empty() { None } else { Some(self.handles[index % self.handles.len()].clone()) }
@@ -1521,28 +1523,6 @@ fn update_hit_flash(
     }
 }
 
-fn update_respawn_flash(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut q: Query<(Entity, &mut Sprite, &mut RespawnFlash)>,
-) {
-    for (entity, mut sprite, mut flash) in q.iter_mut() {
-        if !flash.active {
-            flash.delay.tick(time.delta());
-            if flash.delay.finished() {
-                sprite.color = RESPAWN_FLASH_COLOR;
-                flash.active = true;
-            }
-            continue;
-        }
-        flash.flash.tick(time.delta());
-        if flash.flash.finished() {
-            sprite.color = Color::srgb(1.0, 1.0, 1.0);
-            commands.entity(entity).remove::<RespawnFlash>();
-        }
-    }
-}
-
 fn update_death_respawn(
     time: Res<Time>,
     frames: Res<FrameLibrary>,
@@ -1641,6 +1621,7 @@ fn maybe_ai_block(
     }
 }
 
+#[allow(dead_code)]
 fn stagger_actor(
     actor: Actor,
     other_x: f32,

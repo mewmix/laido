@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::asset::AssetPlugin;
 use bevy_iaido::{load_log, replay_match, IaidoPlugin, IaidoSettings};
 
 fn main() {
