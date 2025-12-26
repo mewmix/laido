@@ -30,7 +30,12 @@ const AI_ATTACK_RANGE: f32 = 140.0;
 const AI_ATTACK_COOLDOWN: f32 = 1.0;
 const AI_APPROACH_SPEED: f32 = 120.0;
 const AI_STOP_DISTANCE: f32 = 120.0;
-const AI_DEATH_FRAMES: [&str; 4] = ["red__tile_0.png", "red__tile_1.png", "red__tile_2.png", "red__tile_3.png"];
+const AI_DEATH_FRAMES: [&str; 4] = [
+    "red_death_tile_0.png",
+    "red_death_tile_1.png",
+    "red_death_tile_2.png",
+    "red_death_tile_3.png",
+];
 const AI_HITS_TO_DEATH: u8 = 2;
 const DEATH_FADE_SECONDS: f32 = 0.25;
 const RESPAWN_FADE_SECONDS: f32 = 0.25;
