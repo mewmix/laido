@@ -27,7 +27,7 @@ const AI_ATTACK_FRAMES: [&str; 3] = [
 ];
 const AI_BLOCK_CHANCE: f32 = 0.0;
 const AI_ATTACK_RANGE: f32 = 140.0;
-const AI_ATTACK_COOLDOWN: f32 = 1.0;
+const AI_ATTACK_COOLDOWN: f32 = 1.6;
 const AI_APPROACH_SPEED: f32 = 120.0;
 const AI_STOP_DISTANCE: f32 = 120.0;
 const AI_DEATH_FRAMES: [&str; 4] = [
@@ -61,6 +61,7 @@ const BLOCK_PRESS_FRAME: &str = "block_forward.png";
 const BLOCK_HOLD_FRAME: &str = "block_forward_2.png";
 const BLOCK_HOLD_THRESHOLD: f32 = 0.2;
 const BLOCK_DOWN_FRAME: &str = "block_down.png";
+const BLOCK_HIT_FRAME: &str = "block_hit.png";
 const BACK_HEAVY_FRAME: &str = "back_heavy_stance.png";
 const S_PRESS_FRAME: &str = "duel.png";
 const S_RELEASE_FRAMES: [&str; 2] = ["fast-attack-forward.png", "fast_attack_forward1.png"];
@@ -248,7 +249,7 @@ fn animation_tester(
                     &mut char_q,
                     &mut commands,
                 );
-                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
                 attack_tx.send(AttackCue { actor: Actor::Human });
             }
         } else {
@@ -260,7 +261,7 @@ fn animation_tester(
         if let Some(idx) = frames.human.index_for_name(X_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
             controller_state.x_armed = true;
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
         } else {
             println!("Missing frame: {}", X_PRESS_FRAME);
         }
@@ -280,7 +281,7 @@ fn animation_tester(
         if let Some(idx) = frames.human.index_for_name(Z_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
             controller_state.z_up_armed = true;
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
         } else {
             println!("Missing frame: {}", Z_PRESS_FRAME);
         }
@@ -299,7 +300,7 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X UP".to_string() });
         if let Some(seq) = frames.human.sequence_indices(&[X_RELEASE_FRAME, X_FOLLOW_FRAME]) {
             play_sequence(Actor::Human, seq, &frames, &mut char_q, &mut commands);
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
             attack_tx.send(AttackCue { actor: Actor::Human });
         } else {
             println!("Missing one or more extended release frames.");
@@ -326,7 +327,7 @@ fn animation_tester(
                         &mut char_q,
                         &mut commands,
                     );
-                    maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+                    maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
                     attack_tx.send(AttackCue { actor: Actor::Human });
                 } else {
                     println!("Missing frame: {}", S_DOUBLE_RETURN);
@@ -345,7 +346,7 @@ fn animation_tester(
                 &mut char_q,
                 &mut commands,
             );
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
         } else {
             println!("Missing frame: {}", S_PRESS_FRAME);
         }
@@ -362,7 +363,7 @@ fn animation_tester(
                     &mut char_q,
                     &mut commands,
                 );
-                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time);
+                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
                 attack_tx.send(AttackCue { actor: Actor::Human });
             } else {
                 println!("Missing frame: {}", S_PRESS_FRAME);
@@ -1398,26 +1399,40 @@ fn update_ai_proximity(
     debug_state: Res<DebugState>,
     mut ai_state: ResMut<AiDemoState>,
     mut slash_tx: EventWriter<SlashCue>,
-    char_q: Query<(&Character, &Transform, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+    mut debug_input_tx: EventWriter<DebugInputCue>,
+    char_q: Query<(
+        &Character,
+        &Transform,
+        Option<&FrameSequence>,
+        Option<&ResetFrame>,
+        Option<&DeathRespawn>,
+        Option<&RespawnFadeIn>,
+    )>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
     ai_state.cooldown = (ai_state.cooldown - time.delta_seconds()).max(0.0);
     let mut human = None;
     let mut ai = None;
-    for (character, transform, death, fade) in char_q.iter() {
+    let mut ai_attacking = false;
+    for (character, transform, seq, reset, death, fade) in char_q.iter() {
         if matches!(character.actor, Actor::Human) {
             human = Some(transform.translation);
         } else {
             if death.is_none() && fade.is_none() {
                 ai = Some(transform.translation);
+                if seq.is_some() || reset.is_some() {
+                    ai_attacking = true;
+                }
             }
         }
     }
     let (Some(h), Some(a)) = (human, ai) else { return; };
     if ai_state.cooldown > 0.0 { return; }
+    if ai_attacking { return; }
     if (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
         ai_state.cooldown = AI_ATTACK_COOLDOWN;
+        debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI ATTACK".to_string() });
     }
 }
 
@@ -1529,6 +1544,11 @@ fn handle_hit_resolution(
                     play_frame(Actor::Human, idx, &frames, &mut frame_q, &mut commands);
                 } else {
                     println!("Missing frame: {}", PARRY_FRAME);
+                }
+                if let Some(idx) = frames.human.index_for_name(BLOCK_HIT_FRAME) {
+                    play_frame(Actor::Human, idx, &frames, &mut frame_q, &mut commands);
+                } else {
+                    println!("Missing frame: {}", BLOCK_HIT_FRAME);
                 }
             }
             continue;
@@ -1667,6 +1687,7 @@ fn maybe_ai_block(
     commands: &mut Commands,
     block_state: &mut BlockState,
     time: &Time,
+    debug_input_tx: &mut EventWriter<DebugInputCue>,
 ) {
     use rand::Rng;
     let mut rng = rand::thread_rng();
@@ -1674,6 +1695,7 @@ fn maybe_ai_block(
         return;
     }
     block_state.ai_last_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
+    debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI BLOCK".to_string() });
     if let Some(seq) = ai_attack_sequence(frames) {
         play_sequence_with_return_index(
             Actor::Ai,
