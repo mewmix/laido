@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use rand::Rng;
 
 use crate::{Actor, AttackCue, ClashCue, GoCue, SlashCue, InputDetected, DebugInputCue};
 use crate::types::Direction as GameDirection;
@@ -27,7 +28,7 @@ const AI_ATTACK_FRAMES: [&str; 3] = [
 ];
 const AI_BLOCK_CHANCE: f32 = 0.15;
 const AI_ATTACK_RANGE: f32 = 140.0;
-const AI_ATTACK_COOLDOWN: f32 = 1.6;
+const AI_ATTACK_COOLDOWN: f32 = 2.5;
 const AI_APPROACH_SPEED: f32 = 120.0;
 const AI_STOP_DISTANCE: f32 = 120.0;
 const AI_DEATH_FRAMES: [&str; 4] = [
@@ -1470,7 +1471,8 @@ fn update_ai_proximity(
     if ai_attacking { return; }
     if parry_state.ai_ready && (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
-        ai_state.cooldown = AI_ATTACK_COOLDOWN;
+        let jitter = rand::thread_rng().gen_range(0.0..1.0);
+        ai_state.cooldown = AI_ATTACK_COOLDOWN + jitter;
         parry_state.ai_ready = false;
         debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI PARRY COUNTER".to_string() });
         return;
@@ -1478,7 +1480,8 @@ fn update_ai_proximity(
     if ai_state.cooldown > 0.0 { return; }
     if (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
-        ai_state.cooldown = AI_ATTACK_COOLDOWN;
+        let jitter = rand::thread_rng().gen_range(0.0..1.5);
+        ai_state.cooldown = AI_ATTACK_COOLDOWN + jitter;
         debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI ATTACK".to_string() });
     }
 }
