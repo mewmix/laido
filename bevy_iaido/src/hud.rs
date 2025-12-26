@@ -7,7 +7,7 @@ use std::time::Duration;
 use crate::combat::correct_direction_for;
 use crate::plugin::{DuelRuntime, GoCue, DebugState, AnimationEditMode};
 use crate::types::{DuelPhase, MatchState, Outcome, Actor};
-use crate::visuals::{Character, CharacterControllerState, FrameIndex, FrameLibrary};
+use crate::visuals::{AiHealth, Character, CharacterControllerState, DeathRespawn, FrameIndex, FrameLibrary, RespawnFadeIn};
 
 pub fn systems() -> impl Plugin {
     HudPlugin
@@ -325,10 +325,11 @@ fn update_debug_text(
     mut query: Query<(&mut Text, &mut Visibility), With<DebugText>>,
     rt: Res<DuelRuntime>,
     debug_state: Res<DebugState>,
-    char_q: Query<(&Character, &FrameIndex)>,
+    char_q: Query<(&Character, &FrameIndex, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
     controller_state: Res<CharacterControllerState>,
     frames: Res<FrameLibrary>,
     edit_mode: Res<AnimationEditMode>,
+    ai_health: Res<AiHealth>,
 ) {
     if let Ok((mut text, mut vis)) = query.get_single_mut() {
         match *debug_state {
@@ -338,16 +339,33 @@ fn update_debug_text(
             }
             DebugState::Animation => {
                 *vis = Visibility::Visible;
-                let mut idx = 0;
-                for (c, frame_idx) in char_q.iter() {
-                    if matches!(c.actor, Actor::Human) { idx = frame_idx.index; }
+                let mut human_idx = 0;
+                let mut ai_idx = None;
+                let mut ai_state = "Alive";
+                for (c, frame_idx, death, fade) in char_q.iter() {
+                    if matches!(c.actor, Actor::Human) {
+                        human_idx = frame_idx.index;
+                    }
+                    if matches!(c.actor, Actor::Ai) {
+                        ai_idx = Some(frame_idx.index);
+                        if death.is_some() {
+                            ai_state = "Dying";
+                        } else if fade.is_some() {
+                            ai_state = "Respawn";
+                        }
+                    }
                 }
-                let name = frames.human.name_for_index(idx).unwrap_or("unknown");
+                let human_name = frames.human.name_for_index(human_idx).unwrap_or("unknown");
+                let ai_name = ai_idx.and_then(|idx| frames.ai.name_for_index(idx)).unwrap_or("missing");
                 text.sections[0].value = format!(
-                    "ANIMATION PLAYGROUND\nFolder: {}\nIndex: {} ({})\nEdit: {}\nSlash: {}\nClash: {}\n[Left/Right] Cycle Frame (Edit Mode)\n[Space] Set Slash + Play\n[Enter] Set Clash + Play\n[Z] Up Attack: seq_1 press / seq_2 release\n[X] Extended: seq_1 press / seq_2+seq_3 release\n[C] Block: tap = frame1, hold = frame1+frame2\n[S] Duel: press=duel, release=fast, double=spin\n[D] Toggle Edit Mode",
+                    "ANIMATION PLAYGROUND\nFolder: {}\nHuman: {} ({})\nAI: {} ({})\nAI State: {} | HP: {}\nEdit: {}\nSlash: {}\nClash: {}\n[Left/Right] Cycle Frame (Edit Mode)\n[Space] Set Slash + Play\n[Enter] Set Clash + Play\n[Z] Up Attack: seq_1 press / seq_2 release\n[X] Extended: seq_1 press / seq_2+seq_3 release\n[C] Block: tap = frame1, hold = frame1+frame2\n[S] Duel: press=duel, release=fast, double=spin\n[D] Toggle Edit Mode\n[P] Save controller",
                     controller_state.controller_name,
-                    idx,
-                    name,
+                    human_idx,
+                    human_name,
+                    ai_idx.unwrap_or(0),
+                    ai_name,
+                    ai_state,
+                    ai_health.hits_remaining,
                     if edit_mode.0 { "ON" } else { "OFF" },
                     controller_state.controller.slash_index,
                     controller_state.controller.clash_index,

@@ -18,10 +18,14 @@ pub struct VisualsPlugin;
 const HUMAN_FRAMES_DIR: &str = "atlas/white_samurai";
 const AI_FRAMES_DIR: &str = "atlas/red_samurai";
 const AI_IDLE_FRAME: &str = "red_samurai__tile_3.png";
-const AI_ATTACK_FRAME: &str = "red_samurai__tile_0.png";
+const AI_ATTACK_FRAMES: [&str; 3] = [
+    "red_samurai__tile_0.png",
+    "red_samurai__tile_1.png",
+    "red_samurai__tile_2.png",
+];
 const AI_BLOCK_CHANCE: f32 = 0.0;
-const AI_ATTACK_RANGE: f32 = 200.0;
-const AI_ATTACK_COOLDOWN: f32 = 0.7;
+const AI_ATTACK_RANGE: f32 = 140.0;
+const AI_ATTACK_COOLDOWN: f32 = 1.0;
 const AI_DEATH_FRAMES: [&str; 4] = ["red__tile_0.png", "red__tile_1.png", "red__tile_2.png", "red__tile_3.png"];
 const RESPAWN_FLASH_COLOR: Color = Color::srgb(0.9, 0.95, 1.0);
 const RESPAWN_FLASH_SECONDS: f32 = 0.2;
@@ -31,7 +35,7 @@ const RESPAWN_FADE_SECONDS: f32 = 0.25;
 const HIT_RANGE: f32 = 320.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
-const MIN_SEPARATION: f32 = 5.0;
+const MIN_SEPARATION: f32 = 20.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
 const RUN_FRAME_TIME: f32 = 0.12;
@@ -429,14 +433,14 @@ struct RespawnFlash {
 }
 
 #[derive(Component)]
-struct DeathRespawn {
+pub(crate) struct DeathRespawn {
     stage: DeathStage,
     timer: Timer,
     respawn_x: f32,
 }
 
 #[derive(Component)]
-struct RespawnFadeIn {
+pub(crate) struct RespawnFadeIn {
     timer: Timer,
 }
 
@@ -490,8 +494,8 @@ struct BlockState {
 }
 
 #[derive(Resource)]
-struct AiHealth {
-    hits_remaining: u8,
+pub(crate) struct AiHealth {
+    pub(crate) hits_remaining: u8,
 }
 
 #[derive(Resource, Default)]
@@ -730,17 +734,33 @@ fn handle_slash_cue(
 
                 let actor_frames = frames_for_actor(character.actor, &frames);
                 if matches!(character.actor, Actor::Ai) {
-                    frame_idx.index = ai_attack_index(&frames);
+                    if let Some(seq) = ai_attack_sequence(&frames) {
+                        let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
+                        play_sequence_with_return_index(
+                            Actor::Ai,
+                            seq,
+                            ai_idle_index(&frames),
+                            &frames,
+                            &mut char_q,
+                            &mut commands,
+                        );
+                        commands.entity(entity).remove::<ResetFrame>();
+                        commands.entity(entity).insert(ResetFrame {
+                            timer: Timer::from_seconds(total, TimerMode::Once),
+                            return_index: ai_idle_index(&frames),
+                        });
+                    } else {
+                        frame_idx.index = ai_idle_index(&frames);
+                        apply_frame(actor_frames, &mut frame_idx, &mut texture);
+                    }
                 } else {
                     frame_idx.index = controller_state.controller.slash_index;
+                    apply_frame(actor_frames, &mut frame_idx, &mut texture);
+                    commands.entity(entity).insert(ResetFrame {
+                        timer: Timer::from_seconds(0.5, TimerMode::Once),
+                        return_index: 0,
+                    });
                 }
-                apply_frame(actor_frames, &mut frame_idx, &mut texture);
-                commands.entity(entity).insert(ResetFrame {
-                    timer: Timer::from_seconds(0.5, TimerMode::Once),
-                    return_index: if matches!(character.actor, Actor::Ai) {
-                        ai_idle_index(&frames)
-                    } else { 0 },
-                });
             }
         }
     }
@@ -776,18 +796,37 @@ fn handle_clash_cue(
         }
         for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
             let actor_frames = frames_for_actor(character.actor, &frames);
-            frame_idx.index = if matches!(character.actor, Actor::Ai) {
-                ai_attack_index(&frames)
+            if matches!(character.actor, Actor::Ai) {
+                if let Some(seq) = ai_attack_sequence(&frames) {
+                    let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
+                    play_sequence_with_return_index(
+                        Actor::Ai,
+                        seq,
+                        ai_idle_index(&frames),
+                        &frames,
+                        &mut char_q,
+                        &mut commands,
+                    );
+                    commands.entity(entity).insert(ResetFrame {
+                        timer: Timer::from_seconds(total, TimerMode::Once),
+                        return_index: ai_idle_index(&frames),
+                    });
+                } else {
+                    frame_idx.index = ai_idle_index(&frames);
+                    apply_frame(actor_frames, &mut frame_idx, &mut texture);
+                    commands.entity(entity).insert(ResetFrame {
+                        timer: Timer::from_seconds(0.2, TimerMode::Once),
+                        return_index: ai_idle_index(&frames),
+                    });
+                }
             } else {
-                controller_state.controller.clash_index
-            };
-            apply_frame(actor_frames, &mut frame_idx, &mut texture);
-            commands.entity(entity).insert(ResetFrame {
-                timer: Timer::from_seconds(0.2, TimerMode::Once),
-                return_index: if matches!(character.actor, Actor::Ai) {
-                    ai_idle_index(&frames)
-                } else { 0 },
-            });
+                frame_idx.index = controller_state.controller.clash_index;
+                apply_frame(actor_frames, &mut frame_idx, &mut texture);
+                commands.entity(entity).insert(ResetFrame {
+                    timer: Timer::from_seconds(0.2, TimerMode::Once),
+                    return_index: 0,
+                });
+            }
         }
         commands.spawn((
             SpriteBundle {
@@ -1093,8 +1132,8 @@ fn ai_idle_index(frames: &FrameLibrary) -> usize {
     frames.ai.index_for_name(AI_IDLE_FRAME).unwrap_or(0)
 }
 
-fn ai_attack_index(frames: &FrameLibrary) -> usize {
-    frames.ai.index_for_name(AI_ATTACK_FRAME).unwrap_or(0)
+fn ai_attack_sequence(frames: &FrameLibrary) -> Option<Vec<usize>> {
+    frames.ai.sequence_indices(&AI_ATTACK_FRAMES)
 }
 
 #[derive(Component)]
@@ -1344,7 +1383,7 @@ fn handle_hit_resolution(
     mut ai_health: ResMut<AiHealth>,
     mut q: ParamSet<(
         Query<(&Character, &Transform)>,
-        Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut Sprite)>,
+        Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut Sprite, Option<&DeathRespawn>)>,
     )>,
     mut commands: Commands,
 ) {
@@ -1378,8 +1417,11 @@ fn handle_hit_resolution(
         if now_ms.saturating_sub(last_block) <= BLOCK_WINDOW_MS {
             continue;
         }
-        for (entity, character, mut transform, mut original, mut sprite) in q.p1().iter_mut() {
+        for (entity, character, mut transform, mut original, mut sprite, death) in q.p1().iter_mut() {
             if character.actor == target {
+                if death.is_some() {
+                    continue;
+                }
                 if matches!(target, Actor::Ai) {
                     if ai_health.hits_remaining > 0 {
                         ai_health.hits_remaining = ai_health.hits_remaining.saturating_sub(1);
@@ -1519,15 +1561,16 @@ fn maybe_ai_block(
         return;
     }
     block_state.ai_last_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
-    play_frame_with_return_index(
-        Actor::Ai,
-        ai_attack_index(frames),
-        0.25,
-        ai_idle_index(frames),
-        frames,
-        char_q,
-        commands,
-    );
+    if let Some(seq) = ai_attack_sequence(frames) {
+        play_sequence_with_return_index(
+            Actor::Ai,
+            seq,
+            ai_idle_index(frames),
+            frames,
+            char_q,
+            commands,
+        );
+    }
 }
 
 fn stagger_actor(
