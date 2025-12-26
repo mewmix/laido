@@ -25,7 +25,7 @@ const AI_ATTACK_FRAMES: [&str; 3] = [
     "red_samurai__tile_1.png",
     "red_samurai__tile_2.png",
 ];
-const AI_BLOCK_CHANCE: f32 = 0.0;
+const AI_BLOCK_CHANCE: f32 = 0.15;
 const AI_ATTACK_RANGE: f32 = 140.0;
 const AI_ATTACK_COOLDOWN: f32 = 1.6;
 const AI_APPROACH_SPEED: f32 = 120.0;
@@ -36,6 +36,7 @@ const AI_DEATH_FRAMES: [&str; 4] = [
     "red_death_tile_2.png",
     "red_death_tile_3.png",
 ];
+const AI_PARRY_FRAME: &str = "red_parry__tile_1.png";
 const AI_HITS_TO_DEATH: u8 = 2;
 const DEATH_FADE_SECONDS: f32 = 0.25;
 const RESPAWN_FADE_SECONDS: f32 = 0.25;
@@ -70,6 +71,7 @@ const S_DOUBLE_RETURN: &str = "back_fast_stance.png";
 const S_DOUBLE_WINDOW_MS: u64 = 250;
 const SX_FRAMES: [&str; 2] = ["top_slash_heavy_1.png", "top_slash_heavy.png"];
 const PARRY_FRAME: &str = "parry_1.png";
+const PARRY_FRAME_ALT: &str = "parry_2.png";
 const PARRY_COUNTER_FRAME: &str = "parry_counter_attack_z.png";
 const PARRY_READY_SECONDS: f32 = 0.6;
 
@@ -531,6 +533,9 @@ pub(crate) struct AiHealth {
 pub(crate) struct ParryState {
     pub(crate) ready: bool,
     timer: Timer,
+    pub(crate) ai_ready: bool,
+    ai_timer: Timer,
+    human_parry_alt: bool,
 }
 
 #[derive(Resource, Default)]
@@ -614,6 +619,9 @@ fn setup_scene(
     commands.insert_resource(ParryState {
         ready: false,
         timer: Timer::from_seconds(PARRY_READY_SECONDS, TimerMode::Once),
+        ai_ready: false,
+        ai_timer: Timer::from_seconds(PARRY_READY_SECONDS, TimerMode::Once),
+        human_parry_alt: false,
     });
 
     let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
@@ -1400,6 +1408,7 @@ fn update_ai_proximity(
     mut ai_state: ResMut<AiDemoState>,
     mut slash_tx: EventWriter<SlashCue>,
     mut debug_input_tx: EventWriter<DebugInputCue>,
+    mut parry_state: ResMut<ParryState>,
     char_q: Query<(
         &Character,
         &Transform,
@@ -1427,8 +1436,15 @@ fn update_ai_proximity(
         }
     }
     let (Some(h), Some(a)) = (human, ai) else { return; };
-    if ai_state.cooldown > 0.0 { return; }
     if ai_attacking { return; }
+    if parry_state.ai_ready && (h.x - a.x).abs() <= AI_ATTACK_RANGE {
+        slash_tx.send(SlashCue { actor: Actor::Ai });
+        ai_state.cooldown = AI_ATTACK_COOLDOWN;
+        parry_state.ai_ready = false;
+        debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI PARRY COUNTER".to_string() });
+        return;
+    }
+    if ai_state.cooldown > 0.0 { return; }
     if (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
         ai_state.cooldown = AI_ATTACK_COOLDOWN;
@@ -1540,15 +1556,27 @@ fn handle_hit_resolution(
                 parry_state.ready = true;
                 parry_state.timer.reset();
                 debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "PARRY READY".to_string() });
-                if let Some(idx) = frames.human.index_for_name(PARRY_FRAME) {
+                let parry_frame = if parry_state.human_parry_alt { PARRY_FRAME_ALT } else { PARRY_FRAME };
+                if let Some(idx) = frames.human.index_for_name(parry_frame) {
                     play_frame(Actor::Human, idx, &frames, &mut frame_q, &mut commands);
                 } else {
-                    println!("Missing frame: {}", PARRY_FRAME);
+                    println!("Missing frame: {}", parry_frame);
                 }
+                parry_state.human_parry_alt = !parry_state.human_parry_alt;
                 if let Some(idx) = frames.human.index_for_name(BLOCK_HIT_FRAME) {
                     play_frame(Actor::Human, idx, &frames, &mut frame_q, &mut commands);
                 } else {
                     println!("Missing frame: {}", BLOCK_HIT_FRAME);
+                }
+            }
+            if matches!(target, Actor::Ai) && matches!(actor, Actor::Human) {
+                parry_state.ai_ready = true;
+                parry_state.ai_timer.reset();
+                debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI PARRY READY".to_string() });
+                if let Some(idx) = frames.ai.index_for_name(AI_PARRY_FRAME) {
+                    play_frame(Actor::Ai, idx, &frames, &mut frame_q, &mut commands);
+                } else {
+                    println!("Missing frame: {}", AI_PARRY_FRAME);
                 }
             }
             continue;
@@ -1672,12 +1700,17 @@ fn update_parry_state(
     time: Res<Time>,
     mut parry_state: ResMut<ParryState>,
 ) {
-    if !parry_state.ready {
-        return;
+    if parry_state.ready {
+        parry_state.timer.tick(time.delta());
+        if parry_state.timer.finished() {
+            parry_state.ready = false;
+        }
     }
-    parry_state.timer.tick(time.delta());
-    if parry_state.timer.finished() {
-        parry_state.ready = false;
+    if parry_state.ai_ready {
+        parry_state.ai_timer.tick(time.delta());
+        if parry_state.ai_timer.finished() {
+            parry_state.ai_ready = false;
+        }
     }
 }
 
