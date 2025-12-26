@@ -32,6 +32,37 @@ pub use visuals::*;
 #[cfg(feature = "bevy")]
 pub use touch::*;
 
+#[cfg(feature = "bevy")]
+pub fn run_game() {
+    use bevy::prelude::*;
+    App::new()
+        .insert_resource(IaidoSettings::default())
+        .add_plugins((
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "IAIDO MVP".into(),
+                        resolution: (1280., 720.).into(),
+                        resizable: true,
+                        fit_canvas_to_parent: true,
+                        ..default()
+                    }),
+                    ..default()
+                }),
+            IaidoPlugin,
+        ))
+        .run();
+}
+
+#[cfg(all(feature = "bevy", target_os = "android"))]
+use bevy::prelude::*;
+
+#[cfg(all(feature = "bevy", target_os = "android"))]
+#[bevy_main]
+fn main() {
+    run_game();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

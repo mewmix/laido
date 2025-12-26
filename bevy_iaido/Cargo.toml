@@ -8,6 +8,7 @@ license = "UNLICENSED"
 [lib]
 name = "bevy_iaido"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["bevy"]
@@ -39,3 +40,11 @@ rand = "0.8"
 
 [dev-dependencies]
 serde_json = "1.0"
+
+[package.metadata.android]
+package = "com.bevy_iaido.game"
+label = "Iaido"
+assets = "assets"
+build_targets = ["aarch64-linux-android"]
+android_version = 34
+target_sdk_version = 34

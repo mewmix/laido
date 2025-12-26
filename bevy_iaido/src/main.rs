@@ -19,21 +19,5 @@ fn main() {
         }
     }
 
-    App::new()
-        .insert_resource(IaidoSettings::default())
-        .add_plugins((
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "IAIDO MVP".into(),
-                        resolution: (1280., 720.).into(),
-                        resizable: true,
-                        fit_canvas_to_parent: true,
-                        ..default()
-                    }),
-                    ..default()
-                }),
-            IaidoPlugin,
-        ))
-        .run();
+    bevy_iaido::run_game();
 }
