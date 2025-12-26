@@ -98,14 +98,15 @@ impl Plugin for VisualsPlugin {
                 update_run_animation,
                 update_ai_approach,
                 update_background_layout,
+                animate_background,
                 update_ai_proximity,
                 update_ai_idle,
                 handle_hit_resolution,
                 update_hit_flash,
                 animation_tester,
-            ));
-        app.add_systems(Update, (update_death_respawn, update_respawn_fade_in));
-        app.add_systems(Update, update_parry_state);
+            ))
+            .add_systems(Update, (update_death_respawn, update_respawn_fade_in))
+            .add_systems(Update, update_parry_state);
     }
 }
 
@@ -597,6 +598,26 @@ impl Default for CharacterController {
 #[derive(Component)]
 pub struct OriginalTransform(pub Vec3);
 
+#[derive(Component)]
+struct BackgroundAnimation {
+    timer: Timer,
+    frames: Vec<Handle<Image>>,
+    current_frame: usize,
+}
+
+fn animate_background(
+    time: Res<Time>,
+    mut query: Query<(&mut Handle<Image>, &mut BackgroundAnimation)>,
+) {
+    for (mut texture, mut anim) in query.iter_mut() {
+        anim.timer.tick(time.delta());
+        if anim.timer.just_finished() {
+            anim.current_frame = (anim.current_frame + 1) % anim.frames.len();
+            *texture = anim.frames[anim.current_frame].clone();
+        }
+    }
+}
+
 fn setup_scene(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -650,11 +671,17 @@ fn setup_scene(
         CameraShake { strength: 0.0, decay: 3.0 },
     ));
 
-    // Background - Burning Village (static)
-    let bg_texture = asset_server.load("background/burning_village_0.png");
+    // Background - Burning Village (animated)
+    let bg_frames = vec![
+        asset_server.load("background/burning_village_0.png"),
+        asset_server.load("background/burning_village_1.png"),
+        asset_server.load("background/burning_village_2.png"),
+        asset_server.load("background/burning_village_3.png"),
+    ];
+
     commands.spawn((
         SpriteBundle {
-            texture: bg_texture,
+            texture: bg_frames[0].clone(),
             sprite: Sprite {
                 custom_size: Some(BG_IMAGE_SIZE),
                 ..default()
@@ -663,8 +690,12 @@ fn setup_scene(
             ..default()
         },
         BackgroundSprite { size: BG_IMAGE_SIZE },
+        BackgroundAnimation {
+            timer: Timer::from_seconds(0.15, TimerMode::Repeating),
+            frames: bg_frames,
+            current_frame: 0,
+        },
     ));
-
 }
 
 fn spawn_character(
