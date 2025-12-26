@@ -56,13 +56,24 @@ pub struct InputDetected {
 }
 
 #[cfg(feature = "bevy")]
+#[derive(Event)]
+pub struct DebugInputCue {
+    pub actor: Actor,
+    pub label: String,
+}
+
+#[cfg(feature = "bevy")]
 #[derive(Resource, Default, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum DebugState {
-    #[default]
     Off,
     Stats,
+    #[default]
     Animation,
 }
+
+#[cfg(feature = "bevy")]
+#[derive(Resource, Default, Clone, Copy, Debug)]
+pub struct AnimationEditMode(pub bool);
 
 #[cfg(feature = "bevy")]
 pub struct IaidoPlugin;
@@ -72,12 +83,14 @@ impl Plugin for IaidoPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<IaidoSettings>()
             .init_resource::<DebugState>()
+            .init_resource::<AnimationEditMode>()
             .insert_resource(ClearColor(Color::BLACK))
             .init_resource::<TouchTracker>()
             .add_event::<GoCue>()
             .add_event::<SlashCue>()
             .add_event::<ClashCue>()
             .add_event::<InputDetected>()
+            .add_event::<DebugInputCue>()
             .add_plugins(bevy_kira_audio::AudioPlugin)
             .add_plugins(hud::systems())
             .add_plugins(visuals::VisualsPlugin)
@@ -98,14 +111,14 @@ impl Plugin for IaidoPlugin {
 fn toggle_debug_state(
     keys: Res<ButtonInput<KeyCode>>,
     mut state: ResMut<DebugState>,
+    mut edit_mode: ResMut<AnimationEditMode>,
 ) {
     if keys.just_pressed(KeyCode::KeyD) {
-        *state = match *state {
-            DebugState::Off => DebugState::Stats,
-            DebugState::Stats => DebugState::Animation,
-            DebugState::Animation => DebugState::Off,
-        };
-        println!("Debug State: {:?}", *state);
+        edit_mode.0 = !edit_mode.0;
+        if *state != DebugState::Animation {
+            *state = DebugState::Animation;
+        }
+        println!("Animation Edit Mode: {}", edit_mode.0);
     }
 }
 

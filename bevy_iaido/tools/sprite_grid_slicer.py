@@ -60,7 +60,7 @@ def open_image(path: Path) -> None:
         pass
 
 
-def remove_white_background(img: Image.Image, threshold: int) -> Image.Image:
+def remove_white_background(img: Image.Image, threshold: int, chroma_threshold: int, mode: str) -> Image.Image:
     if img.mode != "RGBA":
         img = img.convert("RGBA")
     pixels = img.load()
@@ -70,8 +70,14 @@ def remove_white_background(img: Image.Image, threshold: int) -> Image.Image:
             r, g, b, a = pixels[x, y]
             if a == 0:
                 continue
-            if r >= threshold and g >= threshold and b >= threshold:
-                pixels[x, y] = (r, g, b, 0)
+            max_c = max(r, g, b)
+            min_c = min(r, g, b)
+            if mode == "white":
+                if r >= threshold and g >= threshold and b >= threshold and (max_c - min_c) <= chroma_threshold:
+                    pixels[x, y] = (r, g, b, 0)
+            else:
+                if r <= threshold and g <= threshold and b <= threshold and (max_c - min_c) <= chroma_threshold:
+                    pixels[x, y] = (r, g, b, 0)
     return img
 
 
@@ -296,6 +302,24 @@ def main() -> int:
         help="RGB threshold for white background removal. Default: 245",
     )
     parser.add_argument(
+        "--black-threshold",
+        type=int,
+        default=12,
+        help="RGB threshold for black background removal. Default: 12",
+    )
+    parser.add_argument(
+        "--chroma-threshold",
+        type=int,
+        default=10,
+        help="Max RGB spread to treat as neutral white. Default: 10",
+    )
+    parser.add_argument(
+        "--bg",
+        choices=["white", "black"],
+        default="white",
+        help="Background mode to remove. Default: white",
+    )
+    parser.add_argument(
         "--open",
         action="store_true",
         help="Open each tile image for preview as they are generated.",
@@ -350,7 +374,8 @@ def main() -> int:
                 idx = row * cols + col
                 box = (col * tile_w, row * tile_h, (col + 1) * tile_w, (row + 1) * tile_h)
                 tile = img.crop(box)
-                tile = remove_white_background(tile, args.white_threshold)
+                threshold = args.white_threshold if args.bg == "white" else args.black_threshold
+                tile = remove_white_background(tile, threshold, args.chroma_threshold, args.bg)
                 final_label = f"tile_{idx}"
                 final_name = f"{base}__{final_label}.png"
                 final_path = out_dir / final_name
