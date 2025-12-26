@@ -1,5 +1,4 @@
-use bevy::prelude::*;
-use bevy_iaido::{load_log, replay_match, IaidoPlugin, IaidoSettings};
+use bevy_iaido::{load_log, replay_match};
 
 fn main() {
     // Simple CLI: --replay <path>
