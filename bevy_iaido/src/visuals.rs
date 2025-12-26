@@ -17,15 +17,21 @@ pub struct VisualsPlugin;
 
 const HUMAN_FRAMES_DIR: &str = "atlas/white_samurai";
 const AI_FRAMES_DIR: &str = "atlas/red_samurai";
-const AI_IDLE_INDEX: usize = 3;
-const AI_ATTACK_INDEX: usize = 0;
+const AI_IDLE_FRAME: &str = "red_samurai__tile_3.png";
+const AI_ATTACK_FRAME: &str = "red_samurai__tile_0.png";
 const AI_BLOCK_CHANCE: f32 = 0.0;
-const AI_ATTACK_RANGE: f32 = 120.0;
-const AI_ATTACK_COOLDOWN: f32 = 1.2;
-const HIT_RANGE: f32 = 160.0;
+const AI_ATTACK_RANGE: f32 = 200.0;
+const AI_ATTACK_COOLDOWN: f32 = 0.7;
+const AI_DEATH_FRAMES: [&str; 4] = ["red__tile_0.png", "red__tile_1.png", "red__tile_2.png", "red__tile_3.png"];
+const RESPAWN_FLASH_COLOR: Color = Color::srgb(0.9, 0.95, 1.0);
+const RESPAWN_FLASH_SECONDS: f32 = 0.2;
+const AI_HITS_TO_DEATH: u8 = 2;
+const DEATH_FADE_SECONDS: f32 = 0.25;
+const RESPAWN_FADE_SECONDS: f32 = 0.25;
+const HIT_RANGE: f32 = 320.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
-const MIN_SEPARATION: f32 = 45.0;
+const MIN_SEPARATION: f32 = 5.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
 const RUN_FRAME_TIME: f32 = 0.12;
@@ -75,8 +81,10 @@ impl Plugin for VisualsPlugin {
                 update_ai_proximity,
                 handle_hit_resolution,
                 update_hit_flash,
+                update_respawn_flash,
                 animation_tester,
             ));
+        app.add_systems(Update, (update_death_respawn, update_respawn_fade_in));
     }
 }
 
@@ -381,7 +389,7 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C UP".to_string() });
         controller_state.block_hold_active = false;
     }
-    if keys.just_pressed(KeyCode::KeyS) {
+    if keys.just_pressed(KeyCode::KeyP) {
         if let Err(err) = save_controller(&controller_state.controller_path, &controller_state.controller) {
             println!("Failed to save controller: {}", err);
         } else {
@@ -392,8 +400,8 @@ fn animation_tester(
 
 fn setup_characters(mut commands: Commands, frames: Res<FrameLibrary>) {
     let start_y = -180.0;
-    spawn_character(&mut commands, Actor::Human, Vec2::new(-300.0, start_y), &frames.human, IDLE_FRAME);
-    spawn_character(&mut commands, Actor::Ai, Vec2::new(300.0, start_y), &frames.ai, "");
+    spawn_character(&mut commands, Actor::Human, Vec2::new(-300.0, start_y), &frames.human, IDLE_FRAME, 1.0);
+    spawn_character(&mut commands, Actor::Ai, Vec2::new(300.0, start_y), &frames.ai, AI_IDLE_FRAME, 1.0);
 }
 
 #[derive(Component)]
@@ -411,6 +419,31 @@ struct ResetFrame {
 #[derive(Component)]
 struct HitFlash {
     timer: Timer,
+}
+
+#[derive(Component)]
+struct RespawnFlash {
+    delay: Timer,
+    flash: Timer,
+    active: bool,
+}
+
+#[derive(Component)]
+struct DeathRespawn {
+    stage: DeathStage,
+    timer: Timer,
+    respawn_x: f32,
+}
+
+#[derive(Component)]
+struct RespawnFadeIn {
+    timer: Timer,
+}
+
+#[derive(Clone, Copy)]
+enum DeathStage {
+    Sequence,
+    FadeOut,
 }
 
 #[derive(Component)]
@@ -454,6 +487,11 @@ struct AiDemoState {
 struct BlockState {
     human_last_ms: u64,
     ai_last_ms: u64,
+}
+
+#[derive(Resource)]
+struct AiHealth {
+    hits_remaining: u8,
 }
 
 #[derive(Resource, Default)]
@@ -533,6 +571,7 @@ fn setup_scene(
     commands.insert_resource(MoveIntent::default());
     commands.insert_resource(StanceLock::default());
     commands.insert_resource(GroundY::default());
+    commands.insert_resource(AiHealth { hits_remaining: AI_HITS_TO_DEATH });
 
     let controller_path = controller_path_for_folder(HUMAN_FRAMES_DIR);
     let controller = load_controller(&controller_path);
@@ -583,7 +622,8 @@ fn spawn_character(
     pos: Vec2,
     frames: &CharacterFrames,
     idle_name: &str,
-) {
+    initial_alpha: f32,
+) -> Entity {
     let base_scale = Vec3::splat(0.4); // Scale down 512x512
 
     let idle_tween = Tween::new(
@@ -600,7 +640,7 @@ fn spawn_character(
     let flip_x = matches!(actor, Actor::Ai);
 
     let idle_idx = if idle_name.is_empty() {
-        AI_IDLE_INDEX % frames.count()
+        0
     } else {
         frames.index_for_name(idle_name).unwrap_or(0)
     };
@@ -609,7 +649,7 @@ fn spawn_character(
         SpriteBundle {
             texture: idle_texture,
             sprite: Sprite {
-                color: Color::srgb(1.0, 1.0, 1.0),
+                color: Color::srgba(1.0, 1.0, 1.0, initial_alpha),
                 flip_x,
                 ..default()
             },
@@ -621,7 +661,7 @@ fn spawn_character(
         Grounded,
         OriginalTransform(Vec3::new(pos.x, pos.y, if matches!(actor, Actor::Human) { 1.0 } else { 0.0 })),
         Animator::new(idle_tween),
-    ));
+    )).id()
 }
 
 fn handle_go_cue(
@@ -690,7 +730,7 @@ fn handle_slash_cue(
 
                 let actor_frames = frames_for_actor(character.actor, &frames);
                 if matches!(character.actor, Actor::Ai) {
-                    frame_idx.index = AI_ATTACK_INDEX;
+                    frame_idx.index = ai_attack_index(&frames);
                 } else {
                     frame_idx.index = controller_state.controller.slash_index;
                 }
@@ -698,7 +738,7 @@ fn handle_slash_cue(
                 commands.entity(entity).insert(ResetFrame {
                     timer: Timer::from_seconds(0.5, TimerMode::Once),
                     return_index: if matches!(character.actor, Actor::Ai) {
-                        AI_IDLE_INDEX % actor_frames.count()
+                        ai_idle_index(&frames)
                     } else { 0 },
                 });
             }
@@ -737,7 +777,7 @@ fn handle_clash_cue(
         for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
             let actor_frames = frames_for_actor(character.actor, &frames);
             frame_idx.index = if matches!(character.actor, Actor::Ai) {
-                AI_ATTACK_INDEX
+                ai_attack_index(&frames)
             } else {
                 controller_state.controller.clash_index
             };
@@ -745,7 +785,7 @@ fn handle_clash_cue(
             commands.entity(entity).insert(ResetFrame {
                 timer: Timer::from_seconds(0.2, TimerMode::Once),
                 return_index: if matches!(character.actor, Actor::Ai) {
-                    AI_IDLE_INDEX % actor_frames.count()
+                    ai_idle_index(&frames)
                 } else { 0 },
             });
         }
@@ -1049,6 +1089,14 @@ fn frames_for_actor<'a>(actor: Actor, frames: &'a FrameLibrary) -> &'a Character
     }
 }
 
+fn ai_idle_index(frames: &FrameLibrary) -> usize {
+    frames.ai.index_for_name(AI_IDLE_FRAME).unwrap_or(0)
+}
+
+fn ai_attack_index(frames: &FrameLibrary) -> usize {
+    frames.ai.index_for_name(AI_ATTACK_FRAME).unwrap_or(0)
+}
+
 #[derive(Component)]
 struct FrameSequence {
     frames: Vec<usize>,
@@ -1200,6 +1248,29 @@ fn play_sequence_with_return_index(
     }
 }
 
+fn play_sequence_no_return(
+    actor: Actor,
+    frames_seq: Vec<usize>,
+    frames: &FrameLibrary,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    commands: &mut Commands,
+) {
+    if frames_seq.is_empty() {
+        return;
+    }
+    for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
+        if character.actor == actor {
+            frame_idx.index = frames_seq[0];
+            apply_frame(frames_for_actor(actor, frames), &mut frame_idx, &mut texture);
+            commands.entity(entity).insert(FrameSequence {
+                frames: frames_seq.clone(),
+                next_index: 1,
+                timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
+            });
+        }
+    }
+}
+
 fn update_block_hold(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -1268,6 +1339,9 @@ fn handle_hit_resolution(
     mut attack_rx: EventReader<AttackCue>,
     time: Res<Time>,
     block_state: Res<BlockState>,
+    frames: Res<FrameLibrary>,
+    mut frame_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    mut ai_health: ResMut<AiHealth>,
     mut q: ParamSet<(
         Query<(&Character, &Transform)>,
         Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut Sprite)>,
@@ -1306,8 +1380,36 @@ fn handle_hit_resolution(
         }
         for (entity, character, mut transform, mut original, mut sprite) in q.p1().iter_mut() {
             if character.actor == target {
-                sprite.color = Color::srgb(1.0, 0.2, 0.2);
-                commands.entity(entity).insert(HitFlash { timer: Timer::from_seconds(0.12, TimerMode::Once) });
+                if matches!(target, Actor::Ai) {
+                    if ai_health.hits_remaining > 0 {
+                        ai_health.hits_remaining = ai_health.hits_remaining.saturating_sub(1);
+                    }
+                    if ai_health.hits_remaining == 0 {
+                        sprite.color = Color::srgb(1.0, 0.2, 0.2);
+                        if let Some(seq) = frames.ai.sequence_indices(&AI_DEATH_FRAMES) {
+                            let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
+                            play_sequence_no_return(
+                                Actor::Ai,
+                                seq,
+                                &frames,
+                                &mut frame_q,
+                                &mut commands,
+                            );
+                            commands.entity(entity).insert(DeathRespawn {
+                                stage: DeathStage::Sequence,
+                                timer: Timer::from_seconds(total, TimerMode::Once),
+                                respawn_x: original.0.x,
+                            });
+                        }
+                        ai_health.hits_remaining = AI_HITS_TO_DEATH;
+                    } else {
+                        sprite.color = Color::srgb(1.0, 0.2, 0.2);
+                        commands.entity(entity).insert(HitFlash { timer: Timer::from_seconds(0.12, TimerMode::Once) });
+                    }
+                } else {
+                    sprite.color = Color::srgb(1.0, 0.2, 0.2);
+                    commands.entity(entity).insert(HitFlash { timer: Timer::from_seconds(0.12, TimerMode::Once) });
+                }
                 stagger_target(character.actor, ax, &mut transform, &mut original);
             }
         }
@@ -1328,6 +1430,82 @@ fn update_hit_flash(
     }
 }
 
+fn update_respawn_flash(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Sprite, &mut RespawnFlash)>,
+) {
+    for (entity, mut sprite, mut flash) in q.iter_mut() {
+        if !flash.active {
+            flash.delay.tick(time.delta());
+            if flash.delay.finished() {
+                sprite.color = RESPAWN_FLASH_COLOR;
+                flash.active = true;
+            }
+            continue;
+        }
+        flash.flash.tick(time.delta());
+        if flash.flash.finished() {
+            sprite.color = Color::srgb(1.0, 1.0, 1.0);
+            commands.entity(entity).remove::<RespawnFlash>();
+        }
+    }
+}
+
+fn update_death_respawn(
+    time: Res<Time>,
+    frames: Res<FrameLibrary>,
+    ground: Res<GroundY>,
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Sprite, &mut DeathRespawn)>,
+) {
+    for (entity, mut sprite, mut death) in q.iter_mut() {
+        death.timer.tick(time.delta());
+        match death.stage {
+            DeathStage::Sequence => {
+                if death.timer.finished() {
+                    death.stage = DeathStage::FadeOut;
+                    death.timer = Timer::from_seconds(DEATH_FADE_SECONDS, TimerMode::Once);
+                }
+            }
+            DeathStage::FadeOut => {
+                let alpha = 1.0 - (death.timer.elapsed_secs() / DEATH_FADE_SECONDS).min(1.0);
+                sprite.color = Color::srgba(1.0, 1.0, 1.0, alpha);
+                if death.timer.finished() {
+                    let respawn_pos = Vec2::new(death.respawn_x, ground.0);
+                    commands.entity(entity).despawn();
+                    let new_entity = spawn_character(
+                        &mut commands,
+                        Actor::Ai,
+                        respawn_pos,
+                        &frames.ai,
+                        AI_IDLE_FRAME,
+                        0.0,
+                    );
+                    commands.entity(new_entity).insert(RespawnFadeIn {
+                        timer: Timer::from_seconds(RESPAWN_FADE_SECONDS, TimerMode::Once),
+                    });
+                }
+            }
+        }
+    }
+}
+
+fn update_respawn_fade_in(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Sprite, &mut RespawnFadeIn)>,
+) {
+    for (entity, mut sprite, mut fade) in q.iter_mut() {
+        fade.timer.tick(time.delta());
+        let alpha = (fade.timer.elapsed_secs() / RESPAWN_FADE_SECONDS).min(1.0);
+        sprite.color = Color::srgba(1.0, 1.0, 1.0, alpha);
+        if fade.timer.finished() {
+            commands.entity(entity).remove::<RespawnFadeIn>();
+        }
+    }
+}
+
 fn maybe_ai_block(
     frames: &FrameLibrary,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
@@ -1343,9 +1521,9 @@ fn maybe_ai_block(
     block_state.ai_last_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
     play_frame_with_return_index(
         Actor::Ai,
-        AI_ATTACK_INDEX,
+        ai_attack_index(frames),
         0.25,
-        AI_IDLE_INDEX % frames.ai.count(),
+        ai_idle_index(frames),
         frames,
         char_q,
         commands,
