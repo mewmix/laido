@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Iaido</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+            touch-action: none; /* Prevent scroll on mobile */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        /* Overlay for rotation if needed (JS can toggle this) */
+        #rotate-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            color: white;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="rotate-overlay">Please rotate your device</div>
+    <!-- Trunk will inject the WASM script here -->
+    <link data-trunk rel="copy-dir" href="assets"/>
+    <script>
+        // Simple orientation lock attempt
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock("portrait").catch(e => console.log(e));
+        }
+        
+        // Prevent context menu
+        window.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+</html>

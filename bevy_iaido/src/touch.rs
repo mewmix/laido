@@ -95,20 +95,27 @@ fn setup_touch_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             spawn_btn(col, VirtualKey::P, "SAVE", button_style.clone(), text_style.clone());
         });
 
-        // Left side: Movement
+        // Left side: Movement (D-Pad)
         parent.spawn(NodeBundle {
             style: Style {
                 position_type: PositionType::Absolute,
                 bottom: Val::Px(20.0),
                 left: Val::Px(20.0),
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::FlexEnd,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
                 ..default()
             },
             ..default()
-        }).with_children(|row| {
-             spawn_btn(row, VirtualKey::Left, "<", button_style.clone(), text_style.clone());
-             spawn_btn(row, VirtualKey::Right, ">", button_style.clone(), text_style.clone());
+        }).with_children(|col| {
+             spawn_btn(col, VirtualKey::Up, "^", button_style.clone(), text_style.clone());
+             col.spawn(NodeBundle {
+                style: Style { flex_direction: FlexDirection::Row, ..default() },
+                ..default()
+             }).with_children(|row| {
+                 spawn_btn(row, VirtualKey::Left, "<", button_style.clone(), text_style.clone());
+                 spawn_btn(row, VirtualKey::Down, "v", button_style.clone(), text_style.clone());
+                 spawn_btn(row, VirtualKey::Right, ">", button_style.clone(), text_style.clone());
+             });
         });
     });
 }

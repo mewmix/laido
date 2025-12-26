@@ -24,15 +24,12 @@ fn main() {
         .insert_resource(IaidoSettings::default())
         .add_plugins((
             DefaultPlugins
-                .set(AssetPlugin {
-                    file_path: format!("{}/assets", env!("CARGO_MANIFEST_DIR")).into(),
-                    ..default()
-                })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "IAIDO MVP".into(),
                         resolution: (1280., 720.).into(),
-                        resizable: false,
+                        resizable: true,
+                        fit_canvas_to_parent: true,
                         ..default()
                     }),
                     ..default()

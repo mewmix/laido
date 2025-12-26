@@ -28,9 +28,8 @@ bevy = { version = "0.14", default-features = false, optional = true, features =
     "bevy_sprite",
     "bevy_ui",
     "bevy_text",
-    "x11",
-    "wayland",
     "png",
+    "webgl2",
 ] }
 bevy_kira_audio = { version = "0.20", optional = true }
 getrandom = { version = "0.3", features = ["wasm_js"] }

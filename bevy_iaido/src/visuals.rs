@@ -11,6 +11,8 @@ use crate::{Actor, AttackCue, ClashCue, GoCue, SlashCue, InputDetected, DebugInp
 use crate::types::Direction as GameDirection;
 use crate::plugin::{DuelRuntime, DebugState, AnimationEditMode};
 use crate::combat::correct_direction_for;
+#[cfg(feature = "bevy")]
+use crate::touch::VirtualKey;
 use bevy::window::PrimaryWindow;
 
 pub struct VisualsPlugin;
@@ -161,9 +163,10 @@ fn get_pose_name(index: usize) -> &'static str {
 }
 
 fn animation_tester(
-    keys: Res<ButtonInput<KeyCode>>,
     mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
     mut move_q: Query<(&Character, &mut Transform, &mut OriginalTransform)>,
+    keys: Res<ButtonInput<KeyCode>>,
+    vkeys: Res<ButtonInput<VirtualKey>>,
     debug_state: Res<DebugState>,
     mut slash_tx: EventWriter<SlashCue>,
     mut clash_tx: EventWriter<ClashCue>,
@@ -182,8 +185,8 @@ fn animation_tester(
 
     if edit_mode.0 {
         let mut delta = 0;
-        if keys.just_pressed(KeyCode::ArrowLeft) { delta = -1; }
-        if keys.just_pressed(KeyCode::ArrowRight) { delta = 1; }
+        if keys.just_pressed(KeyCode::ArrowLeft) || vkeys.just_pressed(VirtualKey::Left) { delta = -1; }
+        if keys.just_pressed(KeyCode::ArrowRight) || vkeys.just_pressed(VirtualKey::Right) { delta = 1; }
 
         if delta != 0 {
             for (_entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
@@ -200,23 +203,23 @@ fn animation_tester(
     }
 
     if edit_mode.0 {
-        if keys.just_pressed(KeyCode::Space) {
+        if keys.just_pressed(KeyCode::Space) || vkeys.just_pressed(VirtualKey::Space) {
             if let Some(idx) = current_human_index(&mut char_q) {
                 controller_state.controller.slash_index = idx;
             }
             slash_tx.send(SlashCue { actor: Actor::Human });
         }
-        if keys.just_pressed(KeyCode::Enter) {
+        if keys.just_pressed(KeyCode::Enter) || vkeys.just_pressed(VirtualKey::Enter) {
             if let Some(idx) = current_human_index(&mut char_q) {
                 controller_state.controller.clash_index = idx;
             }
             clash_tx.send(ClashCue);
         }
-    } else if keys.just_pressed(KeyCode::Space) {
+    } else if keys.just_pressed(KeyCode::Space) || vkeys.just_pressed(VirtualKey::Space) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "SPACE DASH".to_string() });
         dash_forward(&mut move_q);
     }
-    if keys.just_pressed(KeyCode::KeyX) && keys.pressed(KeyCode::KeyS) {
+    if (keys.just_pressed(KeyCode::KeyX) || vkeys.just_pressed(VirtualKey::X)) && (keys.pressed(KeyCode::KeyS) || vkeys.pressed(VirtualKey::S)) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S+X DOWN".to_string() });
         if let Some(seq) = frames.human.sequence_indices(&SX_FRAMES) {
             if let Some(return_idx) = current_human_index(&mut char_q) {
@@ -235,7 +238,7 @@ fn animation_tester(
             println!("Missing one or more top slash heavy frames.");
         }
         controller_state.x_armed = false;
-    } else if keys.just_pressed(KeyCode::KeyX) {
+    } else if keys.just_pressed(KeyCode::KeyX) || vkeys.just_pressed(VirtualKey::X) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X DOWN".to_string() });
         if let Some(idx) = frames.human.index_for_name(X_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
@@ -245,7 +248,7 @@ fn animation_tester(
             println!("Missing frame: {}", X_PRESS_FRAME);
         }
     }
-    if keys.just_pressed(KeyCode::KeyZ) && parry_state.ready {
+    if (keys.just_pressed(KeyCode::KeyZ) || vkeys.just_pressed(VirtualKey::Z)) && parry_state.ready {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "PARRY COUNTER".to_string() });
         if let Some(idx) = frames.human.index_for_name(PARRY_COUNTER_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
@@ -255,7 +258,7 @@ fn animation_tester(
         }
         parry_state.ready = false;
         controller_state.z_up_armed = false;
-    } else if keys.just_pressed(KeyCode::KeyZ) {
+    } else if keys.just_pressed(KeyCode::KeyZ) || vkeys.just_pressed(VirtualKey::Z) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z DOWN".to_string() });
         if let Some(idx) = frames.human.index_for_name(Z_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
@@ -265,7 +268,7 @@ fn animation_tester(
             println!("Missing frame: {}", Z_PRESS_FRAME);
         }
     }
-    if keys.just_released(KeyCode::KeyZ) && controller_state.z_up_armed {
+    if (keys.just_released(KeyCode::KeyZ) || vkeys.just_released(VirtualKey::Z)) && controller_state.z_up_armed {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z UP".to_string() });
         if let Some(idx) = frames.human.index_for_name(Z_RELEASE_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
@@ -275,7 +278,7 @@ fn animation_tester(
         }
         controller_state.z_up_armed = false;
     }
-    if keys.just_released(KeyCode::KeyX) && controller_state.x_armed {
+    if (keys.just_released(KeyCode::KeyX) || vkeys.just_released(VirtualKey::X)) && controller_state.x_armed {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X UP".to_string() });
         if let Some(seq) = frames.human.sequence_indices(&[X_RELEASE_FRAME, X_FOLLOW_FRAME]) {
             play_sequence(Actor::Human, seq, &frames, &mut char_q, &mut commands);
@@ -286,7 +289,7 @@ fn animation_tester(
         }
         controller_state.x_armed = false;
     }
-    if keys.just_pressed(KeyCode::KeyS) {
+    if keys.just_pressed(KeyCode::KeyS) || vkeys.just_pressed(VirtualKey::S) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S DOWN".to_string() });
         let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
         let is_double = now_ms.saturating_sub(controller_state.s_last_press_ms) <= S_DOUBLE_WINDOW_MS;
@@ -330,7 +333,7 @@ fn animation_tester(
             println!("Missing frame: {}", S_PRESS_FRAME);
         }
     }
-    if keys.just_released(KeyCode::KeyS) && controller_state.s_waiting_release && !controller_state.s_double_active {
+    if (keys.just_released(KeyCode::KeyS) || vkeys.just_released(VirtualKey::S)) && controller_state.s_waiting_release && !controller_state.s_double_active {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "S UP".to_string() });
         if let Some(seq) = frames.human.sequence_indices(&S_RELEASE_FRAMES) {
             if let Some(return_idx) = frames.human.index_for_name(S_PRESS_FRAME) {
@@ -352,10 +355,10 @@ fn animation_tester(
         }
         controller_state.s_waiting_release = false;
     }
-    if keys.just_pressed(KeyCode::KeyC) {
+    if keys.just_pressed(KeyCode::KeyC) || vkeys.just_pressed(VirtualKey::C) {
         let now_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
         block_state.human_last_ms = now_ms;
-        if keys.pressed(KeyCode::ArrowLeft) {
+        if keys.pressed(KeyCode::ArrowLeft) || vkeys.pressed(VirtualKey::Left) {
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C+LEFT".to_string() });
             if let Some(idx) = frames.human.index_for_name(BACK_HEAVY_FRAME) {
                 play_frame_with_duration(
@@ -370,7 +373,7 @@ fn animation_tester(
                 println!("Missing frame: {}", BACK_HEAVY_FRAME);
             }
             controller_state.block_hold_active = false;
-        } else if keys.pressed(KeyCode::ArrowDown) {
+        } else if keys.pressed(KeyCode::ArrowDown) || vkeys.pressed(VirtualKey::Down) {
             debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C+DOWN".to_string() });
             if let Some(idx) = frames.human.index_for_name(BLOCK_DOWN_FRAME) {
                 play_frame_with_duration(
@@ -404,11 +407,11 @@ fn animation_tester(
             }
         }
     }
-    if keys.just_released(KeyCode::KeyC) {
+    if keys.just_released(KeyCode::KeyC) || vkeys.just_released(VirtualKey::C) {
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "C UP".to_string() });
         controller_state.block_hold_active = false;
     }
-    if keys.just_pressed(KeyCode::KeyP) {
+    if keys.just_pressed(KeyCode::KeyP) || vkeys.just_pressed(VirtualKey::P) {
         if let Err(err) = save_controller(&controller_state.controller_path, &controller_state.controller) {
             println!("Failed to save controller: {}", err);
         } else {
@@ -1678,6 +1681,7 @@ fn stagger_target(
 fn update_walk_input(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
+    vkeys: Res<ButtonInput<VirtualKey>>,
     debug_state: Res<DebugState>,
     edit_mode: Res<AnimationEditMode>,
     mut move_intent: ResMut<MoveIntent>,
@@ -1689,8 +1693,8 @@ fn update_walk_input(
         return;
     }
     let mut dir: f32 = 0.0;
-    if keys.pressed(KeyCode::ArrowRight) { dir += 1.0; }
-    if keys.pressed(KeyCode::ArrowLeft) { dir -= 1.0; }
+    if keys.pressed(KeyCode::ArrowRight) || vkeys.pressed(VirtualKey::Right) { dir += 1.0; }
+    if keys.pressed(KeyCode::ArrowLeft) || vkeys.pressed(VirtualKey::Left) { dir -= 1.0; }
     move_intent.dir = dir;
     if dir.abs() < f32::EPSILON { return; }
     let speed = 240.0;
