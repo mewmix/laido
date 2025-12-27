@@ -37,7 +37,13 @@ const AI_DEATH_FRAMES: [&str; 4] = [
     "red_death_tile_2.png",
     "red_death_tile_3.png",
 ];
-const AI_PARRY_FRAME: &str = "red_parry__tile_1.png";
+const AI_PARRY_FRAMES: [&str; 5] = [
+    "red_parry__tile_0.png",
+    "red_parry__tile_1.png",
+    "red_parry_4.png",
+    "red_parry_5.png",
+    "red_parry_6.png",
+];
 const AI_HITS_TO_DEATH: u8 = 2;
 const DEATH_FADE_SECONDS: f32 = 0.25;
 const RESPAWN_FADE_SECONDS: f32 = 0.25;
@@ -186,7 +192,7 @@ struct AnimationEvents<'w> {
 }
 
 fn animation_tester(
-    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     mut move_q: Query<(&Character, &mut Transform, &mut OriginalTransform)>,
     keys: Res<ButtonInput<KeyCode>>,
     vkeys: Res<ButtonInput<VirtualKey>>,
@@ -761,15 +767,15 @@ fn handle_go_cue(
 fn handle_slash_cue(
     mut commands: Commands,
     mut slash_rx: EventReader<SlashCue>,
-    mut char_q: Query<(Entity, &Character, &OriginalTransform, &Transform, &mut Animator<Transform>, &mut FrameIndex, &mut Handle<Image>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+    mut char_q: Query<(Entity, &Character, &OriginalTransform, &Transform, &mut Animator<Transform>, &mut FrameIndex, &mut Handle<Image>, Option<&RespawnFadeIn>), Without<DeathRespawn>>,
     controller_state: Res<CharacterControllerState>,
     frames: Res<FrameLibrary>,
     pos_q: Query<(&Character, &Transform)>,
 ) {
     for ev in slash_rx.read() {
-        for (entity, character, original, transform, mut animator, mut frame_idx, mut texture, death, fade) in char_q.iter_mut() {
+        for (entity, character, original, transform, mut animator, mut frame_idx, mut texture, fade) in char_q.iter_mut() {
             if character.actor == ev.actor {
-                if matches!(character.actor, Actor::Ai) && (death.is_some() || fade.is_some()) {
+                if matches!(character.actor, Actor::Ai) && fade.is_some() {
                     continue;
                 }
                 let start_pos = original.0;
@@ -868,7 +874,7 @@ fn handle_clash_cue(
     mut clash_rx: EventReader<ClashCue>,
     mut camera_q: Query<&mut CameraShake, With<MainCamera>>,
     mut commands: Commands,
-    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>, Option<&RespawnFadeIn>), Without<DeathRespawn>>,
     controller_state: Res<CharacterControllerState>,
     frames: Res<FrameLibrary>,
 ) {
@@ -876,9 +882,9 @@ fn handle_clash_cue(
         if let Ok(mut shake) = camera_q.get_single_mut() {
             shake.strength = 4.0; // Violent shake
         }
-        for (entity, character, mut frame_idx, mut texture, death, fade) in char_q.iter_mut() {
+        for (entity, character, mut frame_idx, mut texture, fade) in char_q.iter_mut() {
             let actor_frames = frames_for_actor(character.actor, &frames);
-            if matches!(character.actor, Actor::Ai) && (death.is_some() || fade.is_some()) {
+            if matches!(character.actor, Actor::Ai) && fade.is_some() {
                 continue;
             }
             if matches!(character.actor, Actor::Ai) {
@@ -1120,7 +1126,7 @@ fn save_controller(path: &Path, controller: &CharacterController) -> Result<(), 
 }
 
 fn current_human_index(
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
 ) -> Option<usize> {
     for (_entity, character, frame_idx, _) in char_q.iter_mut() {
         if matches!(character.actor, Actor::Human) {
@@ -1262,7 +1268,7 @@ fn play_frame(
     actor: Actor,
     index: usize,
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
 ) {
     play_frame_with_duration(actor, index, 0.4, frames, char_q, commands);
@@ -1273,7 +1279,7 @@ fn play_frame_with_duration(
     index: usize,
     duration: f32,
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
 ) {
     for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
@@ -1297,7 +1303,7 @@ fn play_frame_with_return_index(
     duration: f32,
     return_index: usize,
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
 ) {
     for (entity, character, mut frame_idx, mut texture) in char_q.iter_mut() {
@@ -1318,7 +1324,7 @@ fn play_sequence(
     actor: Actor,
     frames_seq: Vec<usize>,
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
 ) {
     if frames_seq.is_empty() {
@@ -1349,7 +1355,7 @@ fn play_sequence_with_return_index(
     frames_seq: Vec<usize>,
     return_index: usize,
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
 ) {
     if frames_seq.is_empty() {
@@ -1378,7 +1384,7 @@ fn play_sequence_no_return(
     actor: Actor,
     frames_seq: Vec<usize>,
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
 ) {
     if frames_seq.is_empty() {
@@ -1403,7 +1409,7 @@ fn update_block_hold(
     debug_state: Res<DebugState>,
     mut controller_state: ResMut<CharacterControllerState>,
     frames: Res<FrameLibrary>,
-    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     mut commands: Commands,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
@@ -1548,7 +1554,7 @@ fn handle_hit_resolution(
     time: Res<Time>,
     block_state: Res<BlockState>,
     frames: Res<FrameLibrary>,
-    mut frame_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    mut frame_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     mut ai_health: ResMut<AiHealth>,
     mut parry_state: ResMut<ParryState>,
     mut q: ParamSet<(
@@ -1607,10 +1613,11 @@ fn handle_hit_resolution(
                 parry_state.ai_ready = true;
                 parry_state.ai_timer.reset();
                 debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI PARRY READY".to_string() });
-                if let Some(idx) = frames.ai.index_for_name(AI_PARRY_FRAME) {
+                let parry_frame = AI_PARRY_FRAMES[rand::thread_rng().gen_range(0..AI_PARRY_FRAMES.len())];
+                if let Some(idx) = frames.ai.index_for_name(parry_frame) {
                     play_frame(Actor::Ai, idx, &frames, &mut frame_q, &mut commands);
                 } else {
-                    println!("Missing frame: {}", AI_PARRY_FRAME);
+                    println!("Missing frame: {}", parry_frame);
                 }
             }
             continue;
@@ -1750,7 +1757,7 @@ fn update_parry_state(
 
 fn maybe_ai_block(
     frames: &FrameLibrary,
-    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>)>,
+    char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
     block_state: &mut BlockState,
     time: &Time,
