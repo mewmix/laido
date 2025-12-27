@@ -7,7 +7,7 @@ use std::time::Duration;
 use crate::combat::correct_direction_for;
 use crate::plugin::{DuelRuntime, GoCue, DebugState, AnimationEditMode};
 use crate::types::{DuelPhase, MatchState, Outcome, Actor};
-use crate::visuals::{AiHealth, Character, CharacterControllerState, DeathRespawn, FrameIndex, FrameLibrary, ParryState, RespawnFadeIn};
+use crate::visuals::{AI_ATTACK_RANGE, AI_DODGE_DISTANCE, AI_STOP_DISTANCE, HIT_RANGE, MIN_SEPARATION, AiHealth, Character, CharacterControllerState, DeathRespawn, FrameIndex, FrameLibrary, ParryState, RespawnFadeIn};
 
 pub fn systems() -> impl Plugin {
     HudPlugin
@@ -326,6 +326,7 @@ fn update_debug_text(
     rt: Res<DuelRuntime>,
     debug_state: Res<DebugState>,
     char_q: Query<(&Character, &FrameIndex, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+    char_pos_q: Query<(&Character, &Transform)>,
     controller_state: Res<CharacterControllerState>,
     frames: Res<FrameLibrary>,
     edit_mode: Res<AnimationEditMode>,
@@ -358,8 +359,38 @@ fn update_debug_text(
                 }
                 let human_name = frames.human.name_for_index(human_idx).unwrap_or("unknown");
                 let ai_name = ai_idx.and_then(|idx| frames.ai.name_for_index(idx)).unwrap_or("missing");
+                let mut human_pos = None;
+                let mut ai_pos = None;
+                for (character, transform) in char_pos_q.iter() {
+                    if matches!(character.actor, Actor::Human) {
+                        human_pos = Some(transform.translation);
+                    } else if matches!(character.actor, Actor::Ai) {
+                        ai_pos = Some(transform.translation);
+                    }
+                }
+                let pos_line = if let (Some(h), Some(a)) = (human_pos, ai_pos) {
+                    format!(
+                        "Pos H({:.1},{:.1}) AI({:.1},{:.1}) | dx {:.1} | dist {:.1}",
+                        h.x,
+                        h.y,
+                        a.x,
+                        a.y,
+                        (a.x - h.x).abs(),
+                        h.distance(a)
+                    )
+                } else {
+                    "Pos: missing".to_string()
+                };
+                let range_line = format!(
+                    "Range hit {} | ai_attack {} | ai_stop {:.1} | dodge {} | min_sep {}",
+                    HIT_RANGE,
+                    AI_ATTACK_RANGE,
+                    AI_STOP_DISTANCE,
+                    AI_DODGE_DISTANCE,
+                    MIN_SEPARATION,
+                );
                 text.sections[0].value = format!(
-                    "ANIMATION PLAYGROUND\nFolder: {}\nHuman: {} ({})\nAI: {} ({})\nAI State: {} | HP: {} | Parry: {}\nEdit: {}\nSlash: {}\nClash: {}\n[Left/Right] Cycle Frame (Edit Mode)\n[Space] Set Slash + Play\n[Enter] Set Clash + Play\n[Z] Up Attack: seq_1 press / seq_2 release\n[X] Extended: seq_1 press / seq_2+seq_3 release\n[C] Block: tap = frame1, hold = frame1+frame2\n[S] Duel: press=duel, release=fast, double=spin\n[D] Toggle Edit Mode\n[P] Save controller",
+                    "ANIMATION PLAYGROUND\nFolder: {}\nHuman: {} ({})\nAI: {} ({})\nAI State: {} | HP: {} | Parry: {}\n{}\n{}\nEdit: {}\nSlash: {}\nClash: {}\n[Left/Right] Cycle Frame (Edit Mode)\n[Space] Set Slash + Play\n[Enter] Set Clash + Play\n[Z] Up Attack: seq_1 press / seq_2 release\n[X] Extended: seq_1 press / seq_2+seq_3 release\n[C] Block: tap = frame1, hold = frame1+frame2\n[S] Duel: press=duel, release=fast, double=spin\n[D] Toggle Edit Mode\n[P] Save controller",
                     controller_state.controller_name,
                     human_idx,
                     human_name,
@@ -368,6 +399,8 @@ fn update_debug_text(
                     ai_state,
                     ai_health.hits_remaining,
                     if parry_state.ready { "READY" } else { "OFF" },
+                    pos_line,
+                    range_line,
                     if edit_mode.0 { "ON" } else { "OFF" },
                     controller_state.controller.slash_index,
                     controller_state.controller.clash_index,
@@ -397,8 +430,38 @@ fn update_debug_text(
         let state_str = format!("{:?}", m.match_state);
         let valid_dir = correct_direction_for(m.human_opening);
 
+        let mut human_pos = None;
+        let mut ai_pos = None;
+        for (character, transform) in char_pos_q.iter() {
+            if matches!(character.actor, Actor::Human) {
+                human_pos = Some(transform.translation);
+            } else if matches!(character.actor, Actor::Ai) {
+                ai_pos = Some(transform.translation);
+            }
+        }
+        let pos_line = if let (Some(h), Some(a)) = (human_pos, ai_pos) {
+            format!(
+                "Pos H({:.1},{:.1}) AI({:.1},{:.1}) | dx {:.1} | dist {:.1}",
+                h.x,
+                h.y,
+                a.x,
+                a.y,
+                (a.x - h.x).abs(),
+                h.distance(a)
+            )
+        } else {
+            "Pos: missing".to_string()
+        };
+        let range_line = format!(
+            "Range hit {} | ai_attack {} | ai_stop {:.1} | dodge {} | min_sep {}",
+            HIT_RANGE,
+            AI_ATTACK_RANGE,
+            AI_STOP_DISTANCE,
+            AI_DODGE_DISTANCE,
+            MIN_SEPARATION,
+        );
         let info = format!(
-            "P1: {} | AI: {}\nRound: {}\nState: {}\nLast Outcome: {}\nP1 Swipe: {}\nInput Window: {}ms\nValid: {}",
+            "P1: {} | AI: {}\nRound: {}\nState: {}\nLast Outcome: {}\nP1 Swipe: {}\nInput Window: {}ms\nValid: {}\n{}\n{}",
             m.human_score,
             m.ai_score,
             m.round_results.len() + 1,
@@ -406,7 +469,9 @@ fn update_debug_text(
             last_outcome,
             p_swipe,
             m.input_window_ms,
-            valid_dir
+            valid_dir,
+            pos_line,
+            range_line,
         );
         
         text.sections[0].value = info;

@@ -35,18 +35,29 @@ pub use touch::*;
 #[cfg(feature = "bevy")]
 pub fn run_game() {
     use bevy::prelude::*;
+    let mut window = Window {
+        title: "IAIDO MVP".into(),
+        resizable: true,
+        fit_canvas_to_parent: true,
+        ..default()
+    };
+    
+    // On desktop, we want a fixed aspect ratio for testing, but on mobile we fill screen
+    #[cfg(not(target_os = "android"))]
+    {
+        window.resolution = (1280., 720.).into();
+    }
+    #[cfg(target_os = "android")]
+    {
+        window.mode = bevy::window::WindowMode::BorderlessFullscreen;
+    }
+
     App::new()
         .insert_resource(IaidoSettings::default())
         .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "IAIDO MVP".into(),
-                        resolution: (1280., 720.).into(),
-                        resizable: true,
-                        fit_canvas_to_parent: true,
-                        ..default()
-                    }),
+                    primary_window: Some(window),
                     ..default()
                 }),
             IaidoPlugin,

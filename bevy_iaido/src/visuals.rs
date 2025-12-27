@@ -21,22 +21,25 @@ pub struct VisualsPlugin;
 const HUMAN_FRAMES_DIR: &str = "atlas/white_samurai";
 const AI_FRAMES_DIR: &str = "atlas/red_samurai";
 const AI_IDLE_FRAME: &str = "red_samurai__tile_3.png";
-const AI_ATTACK_FRAMES: [&str; 9] = [
+const AI_ATTACK_NORMAL_FRAMES: [&str; 2] = [
     "red_samurai__tile_0.png",
-    "red_samurai__tile_1.png",
     "red_samurai__tile_2.png",
+];
+const AI_ATTACK_FAST_FRAMES: [&str; 2] = [
     "red_fast_attack_0.png",
     "red_fast_attack_1.png",
+];
+const AI_ATTACK_POWER_FRAMES: [&str; 4] = [
     "power_attack_0.png",
     "power_attack_1.png",
     "power_attack_2.png",
     "power_attack_3.png",
 ];
-const AI_BLOCK_CHANCE: f32 = 0.15;
-const AI_ATTACK_RANGE: f32 = 140.0;
-const AI_ATTACK_COOLDOWN: f32 = 1.2;
+const AI_BLOCK_CHANCE: f32 = 0.50;
+pub(crate) const AI_ATTACK_RANGE: f32 = 10.0;
+const AI_ATTACK_COOLDOWN: f32 = 1.7;
 const AI_APPROACH_SPEED: f32 = 120.0;
-const AI_STOP_DISTANCE: f32 = 120.0;
+pub(crate) const AI_STOP_DISTANCE: f32 = AI_ATTACK_RANGE * 0.9;
 const AI_DEATH_FRAMES: [&str; 4] = [
     "red_death_tile_0.png",
     "red_death_tile_1.png",
@@ -50,15 +53,18 @@ const AI_PARRY_FRAMES: [&str; 5] = [
     "red_parry_5.png",
     "red_parry_6.png",
 ];
-const AI_HITS_TO_DEATH: u8 = 2;
-const DEATH_FADE_SECONDS: f32 = 0.25;
-const RESPAWN_FADE_SECONDS: f32 = 0.25;
-const HIT_RANGE: f32 = 320.0;
+const AI_DODGE_FRAMES: [&str; 2] = ["dodge_0.png", "dodge_1.png"];
+const AI_HITS_TO_DEATH: u8 = 1;
+const DEATH_FADE_SECONDS: f32 = 0.50;
+const RESPAWN_FADE_SECONDS: f32 = 0.50;
+pub(crate) const HIT_RANGE: f32 = 10.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
-const MIN_SEPARATION: f32 = 10.0;
+pub(crate) const MIN_SEPARATION: f32 = 1.0;
 const SEQUENCE_FRAME_TIME: f32 = 0.2;
 const DASH_DISTANCE: f32 = 220.0;
+pub(crate) const AI_DODGE_DISTANCE: f32 = 80.0;
+const AI_DODGE_SECONDS: f32 = 0.12;
 const RUN_FRAME_TIME: f32 = 0.12;
 const RUN_FRAMES: [&str; 4] = ["run_0.png", "run_1.png", "run_2.png", "run_3.png"];
 const STAGE_LEFT_X: f32 = -520.0;
@@ -113,6 +119,7 @@ impl Plugin for VisualsPlugin {
                 update_background_layout,
                 animate_background,
                 update_ai_proximity,
+                update_ai_dodge_back,
                 update_ai_idle,
                 handle_hit_resolution,
                 update_hit_flash,
@@ -265,7 +272,8 @@ fn animation_tester(
                     &mut char_q,
                     &mut commands,
                 );
-                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+                controller_state.ai_attack_style = AiAttackStyle::Heavy;
+                maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
                 attack_tx.send(AttackCue { actor: Actor::Human });
             }
         } else {
@@ -277,7 +285,8 @@ fn animation_tester(
         if let Some(idx) = frames.human.index_for_name(X_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
             controller_state.x_armed = true;
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+            controller_state.ai_attack_style = AiAttackStyle::Heavy;
+            maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
         } else {
             println!("Missing frame: {}", X_PRESS_FRAME);
         }
@@ -286,6 +295,7 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "PARRY COUNTER".to_string() });
         if let Some(idx) = frames.human.index_for_name(PARRY_COUNTER_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
+            controller_state.ai_attack_style = AiAttackStyle::Normal;
             attack_tx.send(AttackCue { actor: Actor::Human });
         } else {
             println!("Missing frame: {}", PARRY_COUNTER_FRAME);
@@ -297,7 +307,8 @@ fn animation_tester(
         if let Some(idx) = frames.human.index_for_name(Z_PRESS_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
             controller_state.z_up_armed = true;
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+            controller_state.ai_attack_style = AiAttackStyle::Normal;
+            maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
         } else {
             println!("Missing frame: {}", Z_PRESS_FRAME);
         }
@@ -306,6 +317,7 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "Z UP".to_string() });
         if let Some(idx) = frames.human.index_for_name(Z_RELEASE_FRAME) {
             play_frame(Actor::Human, idx, &frames, &mut char_q, &mut commands);
+            controller_state.ai_attack_style = AiAttackStyle::Normal;
             attack_tx.send(AttackCue { actor: Actor::Human });
         } else {
             println!("Missing frame: {}", Z_RELEASE_FRAME);
@@ -316,7 +328,8 @@ fn animation_tester(
         debug_input_tx.send(DebugInputCue { actor: Actor::Human, label: "X UP".to_string() });
         if let Some(seq) = frames.human.sequence_indices(&[X_RELEASE_FRAME, X_FOLLOW_FRAME]) {
             play_sequence(Actor::Human, seq, &frames, &mut char_q, &mut commands);
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+            controller_state.ai_attack_style = AiAttackStyle::Heavy;
+            maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
             attack_tx.send(AttackCue { actor: Actor::Human });
         } else {
             println!("Missing one or more extended release frames.");
@@ -343,7 +356,8 @@ fn animation_tester(
                         &mut char_q,
                         &mut commands,
                     );
-                    maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+                    controller_state.ai_attack_style = AiAttackStyle::Fast;
+                    maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
                     attack_tx.send(AttackCue { actor: Actor::Human });
                 } else {
                     println!("Missing frame: {}", S_DOUBLE_RETURN);
@@ -362,7 +376,8 @@ fn animation_tester(
                 &mut char_q,
                 &mut commands,
             );
-            maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+            controller_state.ai_attack_style = AiAttackStyle::Fast;
+            maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
         } else {
             println!("Missing frame: {}", S_PRESS_FRAME);
         }
@@ -379,7 +394,8 @@ fn animation_tester(
                     &mut char_q,
                     &mut commands,
                 );
-                maybe_ai_block(&frames, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
+                controller_state.ai_attack_style = AiAttackStyle::Fast;
+                maybe_ai_block(&frames, controller_state.ai_attack_style, &mut char_q, &mut commands, &mut block_state, &time, &mut debug_input_tx);
                 attack_tx.send(AttackCue { actor: Actor::Human });
             } else {
                 println!("Missing frame: {}", S_PRESS_FRAME);
@@ -470,6 +486,28 @@ struct Lifetime(Timer);
 struct ResetFrame {
     timer: Timer,
     return_index: usize,
+}
+
+#[derive(Component)]
+struct AiAttackSequence;
+
+#[derive(Component)]
+struct AiDodgeBack {
+    timer: Timer,
+    start_x: f32,
+    end_x: f32,
+    initialized: bool,
+}
+
+impl AiDodgeBack {
+    fn new() -> Self {
+        Self {
+            timer: Timer::from_seconds(AI_DODGE_SECONDS, TimerMode::Once),
+            start_x: 0.0,
+            end_x: 0.0,
+            initialized: false,
+        }
+    }
 }
 
 #[derive(Component)]
@@ -575,6 +613,7 @@ pub(crate) struct CharacterControllerState {
     pub(crate) controller: CharacterController,
     pub(crate) controller_path: PathBuf,
     pub(crate) controller_name: String,
+    ai_attack_style: AiAttackStyle,
     z_up_armed: bool,
     x_armed: bool,
     block_hold_active: bool,
@@ -606,6 +645,21 @@ impl Default for CharacterController {
             heavy_up_release_index: 3,
         }
     }
+}
+
+#[derive(Clone, Copy)]
+enum AiAttackStyle {
+    Normal,
+    Heavy,
+    Fast,
+}
+
+fn advance_ai_attack_style(style: &mut AiAttackStyle) {
+    *style = match *style {
+        AiAttackStyle::Normal => AiAttackStyle::Fast,
+        AiAttackStyle::Fast => AiAttackStyle::Heavy,
+        AiAttackStyle::Heavy => AiAttackStyle::Normal,
+    };
 }
 
 #[derive(Component)]
@@ -665,6 +719,7 @@ fn setup_scene(
         controller,
         controller_path,
         controller_name,
+        ai_attack_style: AiAttackStyle::Normal,
         z_up_armed: false,
         x_armed: false,
         block_hold_active: false,
@@ -830,7 +885,7 @@ fn handle_slash_cue(
 
                 let actor_frames = frames_for_actor(character.actor, &frames);
                 if matches!(character.actor, Actor::Ai) {
-                    if let Some(seq) = ai_attack_sequence(&frames) {
+                    if let Some(seq) = ai_attack_sequence(&frames, controller_state.ai_attack_style) {
                         let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
                         frame_idx.index = seq[0];
                         apply_frame(actor_frames, &mut frame_idx, &mut texture);
@@ -841,6 +896,7 @@ fn handle_slash_cue(
                             next_index: 1,
                             timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
                         });
+                        commands.entity(entity).insert(AiAttackSequence);
                         commands.entity(entity).insert(ResetFrame {
                             timer: Timer::from_seconds(total, TimerMode::Once),
                             return_index: ai_idle_index(&frames),
@@ -896,7 +952,7 @@ fn handle_clash_cue(
                 continue;
             }
             if matches!(character.actor, Actor::Ai) {
-                if let Some(seq) = ai_attack_sequence(&frames) {
+                if let Some(seq) = ai_attack_sequence(&frames, controller_state.ai_attack_style) {
                     let total = SEQUENCE_FRAME_TIME * (seq.len() as f32);
                     frame_idx.index = seq[0];
                     apply_frame(actor_frames, &mut frame_idx, &mut texture);
@@ -907,6 +963,7 @@ fn handle_clash_cue(
                         next_index: 1,
                         timer: Timer::from_seconds(SEQUENCE_FRAME_TIME, TimerMode::Repeating),
                     });
+                    commands.entity(entity).insert(AiAttackSequence);
                     commands.entity(entity).insert(ResetFrame {
                         timer: Timer::from_seconds(total, TimerMode::Once),
                         return_index: ai_idle_index(&frames),
@@ -1036,11 +1093,12 @@ fn update_background_layout(
     let Ok(window) = windows.get_single() else { return; };
     let width = window.resolution.width();
     for (bg, mut sprite, mut transform) in q.p0().iter_mut() {
-        let scale = width / bg.size.x;
-        let height = bg.size.y * scale;
-        sprite.custom_size = Some(Vec2::new(width, height));
+        let bg_scale = width / bg.size.x;
+        let scaled_w = bg.size.x * bg_scale;
+        let scaled_h = bg.size.y * bg_scale;
+        sprite.custom_size = Some(Vec2::new(scaled_w, scaled_h));
         transform.translation.y = 0.0;
-        ground.0 = -height * 0.5 + GROUND_OFFSET_Y;
+        ground.0 = -scaled_h * 0.5 + GROUND_OFFSET_Y;
     }
     for (mut transform, mut original) in q.p1().iter_mut() {
         transform.translation.y = ground.0;
@@ -1233,8 +1291,19 @@ fn ai_idle_index(frames: &FrameLibrary) -> usize {
     frames.ai.index_for_name(AI_IDLE_FRAME).unwrap_or(0)
 }
 
-fn ai_attack_sequence(frames: &FrameLibrary) -> Option<Vec<usize>> {
-    frames.ai.sequence_indices(&AI_ATTACK_FRAMES)
+fn ai_attack_sequence(frames: &FrameLibrary, style: AiAttackStyle) -> Option<Vec<usize>> {
+    let names = match style {
+        AiAttackStyle::Normal => &AI_ATTACK_NORMAL_FRAMES[..],
+        AiAttackStyle::Fast => &AI_ATTACK_FAST_FRAMES[..],
+        AiAttackStyle::Heavy => &AI_ATTACK_POWER_FRAMES[..],
+    };
+    let mut out = Vec::with_capacity(names.len());
+    for name in names {
+        if let Some(idx) = frames.ai.index_for_name(name) {
+            out.push(idx);
+        }
+    }
+    if out.is_empty() { None } else { Some(out) }
 }
 
 #[derive(Component)]
@@ -1255,13 +1324,18 @@ fn update_frame_sequences(
     debug_state: Res<DebugState>,
     frames: Res<FrameLibrary>,
     mut commands: Commands,
-    mut q: Query<(Entity, &Character, &mut FrameSequence, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
+    mut q: Query<(Entity, &Character, &mut FrameSequence, &mut FrameIndex, &mut Handle<Image>, Option<&AiAttackSequence>), Without<DeathRespawn>>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
-    for (entity, character, mut seq, mut frame_idx, mut texture) in q.iter_mut() {
+    for (entity, character, mut seq, mut frame_idx, mut texture, ai_attack) in q.iter_mut() {
         seq.timer.tick(time.delta());
         if seq.timer.finished() {
             if seq.next_index >= seq.frames.len() {
+                if matches!(character.actor, Actor::Ai) && ai_attack.is_some() {
+                    commands.entity(entity).insert(AiDodgeBack::new());
+                    commands.entity(entity).remove::<AiAttackSequence>();
+                    commands.entity(entity).remove::<ResetFrame>();
+                }
                 commands.entity(entity).remove::<FrameSequence>();
                 continue;
             }
@@ -1455,6 +1529,7 @@ fn update_ai_proximity(
     mut slash_tx: EventWriter<SlashCue>,
     mut debug_input_tx: EventWriter<DebugInputCue>,
     mut parry_state: ResMut<ParryState>,
+    mut controller_state: ResMut<CharacterControllerState>,
     char_q: Query<(
         &Character,
         &Transform,
@@ -1462,6 +1537,7 @@ fn update_ai_proximity(
         Option<&ResetFrame>,
         Option<&DeathRespawn>,
         Option<&RespawnFadeIn>,
+        Option<&AiDodgeBack>,
     )>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
@@ -1469,13 +1545,13 @@ fn update_ai_proximity(
     let mut human = None;
     let mut ai = None;
     let mut ai_attacking = false;
-    for (character, transform, seq, reset, death, fade) in char_q.iter() {
+    for (character, transform, seq, reset, death, fade, dodge) in char_q.iter() {
         if matches!(character.actor, Actor::Human) {
             human = Some(transform.translation);
         } else {
             if death.is_none() && fade.is_none() {
                 ai = Some(transform.translation);
-                if seq.is_some() || reset.is_some() {
+                if seq.is_some() || reset.is_some() || dodge.is_some() {
                     ai_attacking = true;
                 }
             }
@@ -1488,6 +1564,7 @@ fn update_ai_proximity(
         let jitter = rand::thread_rng().gen_range(0.0..0.3);
         ai_state.cooldown = AI_ATTACK_COOLDOWN + jitter;
         parry_state.ai_ready = false;
+        advance_ai_attack_style(&mut controller_state.ai_attack_style);
         debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI PARRY COUNTER".to_string() });
         return;
     }
@@ -1496,6 +1573,7 @@ fn update_ai_proximity(
         slash_tx.send(SlashCue { actor: Actor::Ai });
         let jitter = rand::thread_rng().gen_range(0.0..0.5);
         ai_state.cooldown = AI_ATTACK_COOLDOWN + jitter;
+        advance_ai_attack_style(&mut controller_state.ai_attack_style);
         debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI ATTACK".to_string() });
     }
 }
@@ -1504,13 +1582,13 @@ fn update_ai_approach(
     time: Res<Time>,
     debug_state: Res<DebugState>,
     edit_mode: Res<AnimationEditMode>,
-    mut char_q: Query<(&Character, &mut Transform, &mut OriginalTransform, Option<&FrameSequence>, Option<&ResetFrame>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+    mut char_q: Query<(&Character, &mut Transform, &mut OriginalTransform, Option<&FrameSequence>, Option<&ResetFrame>, Option<&DeathRespawn>, Option<&RespawnFadeIn>, Option<&AiDodgeBack>)>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
     if edit_mode.0 { return; }
     let mut human_x = None;
     let mut ai_x = None;
-    for (character, transform, _original, _seq, _reset, death, fade) in char_q.iter() {
+    for (character, transform, _original, _seq, _reset, death, fade, _dodge) in char_q.iter() {
         if matches!(character.actor, Actor::Human) {
             human_x = Some(transform.translation.x);
         } else if death.is_none() && fade.is_none() {
@@ -1526,10 +1604,10 @@ fn update_ai_approach(
     let delta = dir * AI_APPROACH_SPEED * time.delta_seconds();
     let desired = ax + delta;
     let clamped = clamp_ai_x(desired, hx);
-    for (character, mut transform, mut original, seq, reset, death, fade) in char_q.iter_mut() {
+    for (character, mut transform, mut original, seq, reset, death, fade, dodge) in char_q.iter_mut() {
         if !matches!(character.actor, Actor::Ai) { continue; }
         if death.is_some() || fade.is_some() { continue; }
-        if seq.is_some() || reset.is_some() { continue; }
+        if seq.is_some() || reset.is_some() || dodge.is_some() { continue; }
         transform.translation.x = clamped;
         original.0.x = clamped;
     }
@@ -1538,14 +1616,14 @@ fn update_ai_approach(
 fn update_ai_idle(
     debug_state: Res<DebugState>,
     frames: Res<FrameLibrary>,
-    mut char_q: Query<(&Character, &mut FrameIndex, &mut Handle<Image>, Option<&FrameSequence>, Option<&ResetFrame>, Option<&DeathRespawn>, Option<&RespawnFadeIn>)>,
+    mut char_q: Query<(&Character, &mut FrameIndex, &mut Handle<Image>, Option<&FrameSequence>, Option<&ResetFrame>, Option<&DeathRespawn>, Option<&RespawnFadeIn>, Option<&AiDodgeBack>)>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
-    for (character, mut frame_idx, mut texture, seq, reset, death, fade) in char_q.iter_mut() {
+    for (character, mut frame_idx, mut texture, seq, reset, death, fade, dodge) in char_q.iter_mut() {
         if !matches!(character.actor, Actor::Ai) {
             continue;
         }
-        if seq.is_some() || reset.is_some() || death.is_some() || fade.is_some() {
+        if seq.is_some() || reset.is_some() || death.is_some() || fade.is_some() || dodge.is_some() {
             continue;
         }
         let idle_idx = ai_idle_index(&frames);
@@ -1765,6 +1843,7 @@ fn update_parry_state(
 
 fn maybe_ai_block(
     frames: &FrameLibrary,
+    style: AiAttackStyle,
     char_q: &mut Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
     commands: &mut Commands,
     block_state: &mut BlockState,
@@ -1778,7 +1857,7 @@ fn maybe_ai_block(
     }
     block_state.ai_last_ms = (time.elapsed_seconds_f64() * 1000.0) as u64;
     debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI BLOCK".to_string() });
-    if let Some(seq) = ai_attack_sequence(frames) {
+    if let Some(seq) = ai_attack_sequence(frames, style) {
         play_sequence_with_return_index(
             Actor::Ai,
             seq,
@@ -1787,6 +1866,73 @@ fn maybe_ai_block(
             char_q,
             commands,
         );
+    }
+}
+
+fn update_ai_dodge_back(
+    time: Res<Time>,
+    debug_state: Res<DebugState>,
+    frames: Res<FrameLibrary>,
+    mut commands: Commands,
+    mut q: ParamSet<(
+        Query<(&Character, &Transform)>,
+        Query<(Entity, &Character, &mut Transform, &mut OriginalTransform, &mut FrameIndex, &mut Handle<Image>, &mut AiDodgeBack), Without<DeathRespawn>>,
+    )>,
+) {
+    if !matches!(*debug_state, DebugState::Animation) { return; }
+    let mut human_x = None;
+    for (character, transform) in q.p0().iter() {
+        if matches!(character.actor, Actor::Human) {
+            human_x = Some(transform.translation.x);
+            break;
+        }
+    }
+    let Some(hx) = human_x else { return; };
+    for (entity, character, mut transform, mut original, mut frame_idx, mut texture, mut dodge) in q.p1().iter_mut() {
+        if !matches!(character.actor, Actor::Ai) {
+            continue;
+        }
+        if !dodge.initialized {
+            let ai_x = transform.translation.x;
+            let dir = if ai_x >= hx { 1.0 } else { -1.0 };
+            let desired = ai_x + (dir * AI_DODGE_DISTANCE);
+            let mut end_x = desired.clamp(STAGE_LEFT_X, STAGE_RIGHT_X);
+            if ai_x >= hx {
+                let min_x = hx + MIN_SEPARATION;
+                if end_x < min_x {
+                    end_x = min_x;
+                }
+            } else {
+                let max_x = hx - MIN_SEPARATION;
+                if end_x > max_x {
+                    end_x = max_x;
+                }
+            }
+            dodge.start_x = ai_x;
+            dodge.end_x = end_x;
+            dodge.timer.reset();
+            dodge.initialized = true;
+            let dodge_frame = AI_DODGE_FRAMES[rand::thread_rng().gen_range(0..AI_DODGE_FRAMES.len())];
+            if let Some(idx) = frames.ai.index_for_name(dodge_frame) {
+                frame_idx.index = idx;
+                apply_frame(&frames.ai, &mut frame_idx, &mut texture);
+            } else {
+                println!("Missing frame: {}", dodge_frame);
+            }
+        }
+        dodge.timer.tick(time.delta());
+        let t = (dodge.timer.elapsed_secs() / AI_DODGE_SECONDS).min(1.0);
+        let eased = t * (2.0 - t);
+        let new_x = dodge.start_x + (dodge.end_x - dodge.start_x) * eased;
+        transform.translation.x = new_x;
+        original.0.x = new_x;
+        if dodge.timer.finished() {
+            if let Some(idx) = frames.ai.index_for_name(AI_IDLE_FRAME) {
+                frame_idx.index = idx;
+                apply_frame(&frames.ai, &mut frame_idx, &mut texture);
+            }
+            commands.entity(entity).remove::<AiDodgeBack>();
+        }
     }
 }
 

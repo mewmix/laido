@@ -1,0 +1,579 @@
+--------- beginning of main
+12-26 15:15:23.405  6388  6436 E ThermalEngine: sensor name fetch error for TZ:68
+12-26 15:15:23.410  6388  6436 E ThermalEngine: sensor name fetch error for TZ:71
+12-26 15:15:23.423  1478  8252 I android.system.suspend-service: Android suspend exit.
+12-26 15:15:23.423  1478  8252 I android.system.suspend-service: mSleepTime has been updated to 200
+12-26 15:15:23.496  3532  4367 D FusionLightNextGen: raw_lux -1.0, raw_cct -1.0, r/g/b/c: 13.8/0.0/0.0/13.5, R/G/B: 0.0/0.0/0.0, bri 0.0, lux: 0.174548, cct: -1.0, ir: 0.008876, conf: 0, cnt: 0
+--------- beginning of system
+12-26 15:15:23.572  3532  4238 D osense.compress: org.telegram.messenger.web do shrink, target ratio = 68, final ratio = 70, cur ratio = 63
+12-26 15:15:23.605  3532  4758 W ActivityTaskManager: callingPackage for (uid=2000, pid=24710) has no WPC
+12-26 15:15:23.605  3532  4609 I [UAH_CLIENT]: UahEventAcquire, cmdid:2, pkg:none, identity:com.android.server.wm
+12-26 15:15:23.606  3532  4758 D WindowManager: NFW_setClientVisible:ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity clientVisible:true
+12-26 15:15:23.606  3532  4758 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@3eb095d does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+12-26 15:15:23.607  3532  4758 D FlexibleTaskController: isSupportFlexibleWindow target = com.bevy_iaido.game/android.app.NativeActivity callPkg = FlexibleTaskController support = true ,caller = 3532
+12-26 15:15:23.608  3532  4758 I system_server: AssetManager2(0xb400006e46449e28) locale list changing from [] to [en-US]
+12-26 15:15:23.609  3532  4758 D ActivityStarterExtImpl: NOT BACKGROUND_START_ACTIVITY_PERMISSION FEATURE
+12-26 15:15:23.610  3532  4758 D FlexibleWindowManagerService: isIgnoreAppearedAcrossTask:false
+12-26 15:15:23.610  3532  4758 D FlexibleWindowManagerService: isIgnoreAppearedAcrossTask:false
+12-26 15:15:23.610  3532  4758 D FlexibleTaskController: adjustOptionsForFlexibleTask skip adjust options reason:7
+12-26 15:15:23.610  3532  4758 D FlexibleTaskController: isSupportFlexibleWindow target = com.bevy_iaido.game/android.app.NativeActivity callPkg = FlexibleTaskController support = true ,caller = 3532
+12-26 15:15:23.610  3532  4758 D FlexibleWindowManagerService: no reused task found for ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t-1}
+12-26 15:15:23.611  3532  4758 D ActivityTaskManager: Temporarily retain top process state for launching app
+12-26 15:15:23.615  3532  4758 D SecondaryPageStartupPolicy: checkSecondaryPageStartupStatus not support sourcePackage=com.android.shell
+12-26 15:15:23.615  3532  4758 D OplusStartingWindowManager: we don't revise window flags for third app
+12-26 15:15:23.615  3532  4758 W ActivityTaskManager: addStartingWindow fail due to not okToDisplay
+12-26 15:15:23.616  3532  4758 D RefreshRate: animator duration scale switch off, skip app switch boost!
+12-26 15:15:23.616  3532  4758 V SensorManager: call sensorServiceCommonInterface name: setScreenShotDisable
+12-26 15:15:23.616  3532  4758 D SensorServiceExtImpl: sensorServiceCommonInterface funcName = setScreenShotDisable, flag = 0, status = 0
+12-26 15:15:23.616  3532  4609 I [UAH_CLIENT]: UahEventAcquire, cmdid:1, pkg:com.bevy_iaido.game, identity:com.android.server.wm
+12-26 15:15:23.617  3532  4758 D ActivityTaskManager: notifyTaskAdded, task: Task{aa057a8 #71293 type=standard A=10294:com.bevy_iaido.game} trace:com.android.server.wm.RecentTasks.add:1392 com.android.server.wm.ActivityStarter.startActivityInner:2983 com.android.server.wm.ActivityStarter.startActivityUnchecked:2152 com.android.server.wm.ActivityStarter.executeRequest:1906 com.android.server.wm.ActivityStarter.execute:1004 
+12-26 15:15:23.617  3532  9105 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@3eb095d does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+12-26 15:15:23.618  3532  5657 I OPM-Process: resume pkg: com.bevy_iaido.game, uid:10294, prev pkg: com.android.launcher, prev uid: 10199
+12-26 15:15:23.618  3532  9105 W ActivityManager: ProcessRecord{7c981a7 0:com.bevy_iaido.game/u0a294}: ART verification disabled
+12-26 15:15:23.619  3532  4758 D osense.compress: notifyActivityLaunched pkgName = com.bevy_iaido.game, userId = 0
+12-26 15:15:23.619 10894 15782 D ShellSubscriberWorkerThread: the first 8 bytes empty, and RestData length > 8 
+12-26 15:15:23.619  3532  4758 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x5 cmp=com.bevy_iaido.game/android.app.NativeActivity mCallingUid=2000} with LAUNCH_MULTIPLE from uid 2000 (BAL_ALLOW_PERMISSION (START_ACTIVITIES_FROM_BACKGROUND permission granted)) result code=0
+12-26 15:15:23.619  3532  9105 D CompatChangeReporter: Compat change id reported: 135754954; UID 10294; state: ENABLED
+12-26 15:15:23.619  5121  5175 V WindowManagerShell: Transition requested (#2035): android.os.BinderProxy@4ab852a TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=71293 effectiveUid=10294 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.bevy_iaido.game/android.app.NativeActivity mCallingUid=2000 } baseActivity=ComponentInfo{com.bevy_iaido.game/android.app.NativeActivity} topActivity=ComponentInfo{com.bevy_iaido.game/android.app.NativeActivity} origActivity=null realActivity=ComponentInfo{com.bevy_iaido.game/android.app.NativeActivity} numActivities=1 lastActiveTime=93340535 supportsSplitScreenMultiWindow=true supportsMultiWindow=true supportsPocketStudioMultiWindow=true isInFlexibleEmbedded = false uid = 10294 pid = 0 resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@816af1b} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 120 - 0, 0) topActivityInfo=ActivityInfo{4e4f8b8 android.app.NativeActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=true locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(266, 642 - 815, 1722) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false topActivityInOplusCompatMode=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 120 - 1080, 2244) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null topActivityLetterboxInsets=Rect(0, 0 - 0, 0) mOplusExtraBundle = Bundle[mParcelledData.dataSize=1468]}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 2035 }
+12-26 15:15:23.619  5121  5175 D ShellSplitScreen: logExit: no-op, mLoggerSessionId is null
+12-26 15:15:23.620  3532  3650 D CompatChangeReporter: Compat change id reported: 143937733; UID 10294; state: ENABLED
+12-26 15:15:23.623  3532  4238 D osense.compress: com.google.android.gms do shrink, target ratio = 76, final ratio = 90, cur ratio = 63
+12-26 15:15:23.623  3532  4607 D osense-blo: [0, false] [0, false] [0, false] 
+12-26 15:15:23.624  5732  6750 I iopgp   : Iopgp: TRANSACTION_IOPGP_PRELOAD Sequence_id = 19 pkg_name = com.bevy_iaido.game uid = 10294 size = 1 isProfile = 1
+12-26 15:15:23.624  5121  5175 D ZoomController: onTaskMovedToFront, task id:71293
+12-26 15:15:23.624  5121  5175 I ZoomUiController: FloatHandle-isFloatHandleShow mPackageName = null
+12-26 15:15:23.628  2192  2192 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+12-26 15:15:23.630  1989 18544 V Codec2-DumpInput: [processLoop:L697][c2.qti.avc.decoder_3]QueueRead[0] empty, waiting buffer.
+12-26 15:15:23.635  1758  1758 D Zygote  : Forked child process 24718
+12-26 15:15:23.635  3532  3643 W QosScheduler: executeSceneQosStrategy failed! qos feature no enable
+12-26 15:15:23.635  3532  3650 I ActivityManager: Start proc 24718:com.bevy_iaido.game/u0a294 for top-activity {com.bevy_iaido.game/android.app.NativeActivity}
+12-26 15:15:23.636  3532  3629 I ActivityManager: ProcessObserver broadcast disabled
+12-26 15:15:23.637  3532  4238 I MemoryOperationUtils: add 24718 to com.bevy_iaido.game
+12-26 15:15:23.637  3532  6285 I OStatsManager_OplusBatteryStatsManager: updateStateTime: PkgName = com.bevy_iaido.game, uid = 10294, state to bg, mForegroundCnt = 0, isFg = false
+12-26 15:15:23.637  1992  1992 E qspmHal : setAppInfoH atPid = 24718, gpuFname:com.bevy_iaido.game, gpuFver:167774721
+12-26 15:15:23.646 24718 24718 I bevy_iaido.game: Late-enabling -Xcheck:jni
+12-26 15:15:23.659  3532  3631 W AccessibilityWindowsPopulator: The displayInfo of this displayId (0) called back from the surface fligner is null
+12-26 15:15:23.665 24718 24718 E bevy_iaido.game: Unknown bits set in runtime_flags: 0x40000000
+12-26 15:15:23.665 24718 24718 I bevy_iaido.game: Using CollectorTypeCMC GC.
+12-26 15:15:23.668 16809 16814 I adbd    : jdwp connection from 24718
+12-26 15:15:23.670 24718 24718 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+12-26 15:15:23.673 24718 24718 D OplusActivityThreadExtImpl: java.lang.NoSuchMethodException: dalvik.system.VMRuntime.SupressionGC [int, int]
+12-26 15:15:23.674 24718 24718 W libc    : Access denied finding property "persist.vendor.sys.activitylog"
+12-26 15:15:23.674 24718 24718 I OneTrace: Mark active for pid=24718? true
+12-26 15:15:23.674 24718 24718 D cutils-dev: otrace_set_tracing_enabled? true tag:0
+12-26 15:15:23.674 24718 24718 D cutils-dev: properties changed in otrace_seq_number_changed!
+12-26 15:15:23.678  1985  8112 E ANDR-PERF-LM: MetaMeter: handleAsync() 166: AdaptLaunch Invalid Async
+12-26 15:15:23.679  3532  4758 I ActivityTaskManager: Process com.bevy_iaido.game restarted
+12-26 15:15:23.679  3532  4758 D SplitScreenAppReader: SPLIT_TOUCH support check:com.bevy_iaido.game = false
+12-26 15:15:23.680  3532  4758 D RGBNormalizeServer: OplusRGBNormalize feature enabled ? false
+12-26 15:15:23.680  3532  4758 D ResourcesManagerCache: For package com.bevy_iaido.game we got cacheList [null] appInfoExt is null ? false hasFeature ? false
+12-26 15:15:23.683  3532  4758 D WindowManager: rotation(ROTATION_0) no changed  displayId = 0, lastOrientation = 5
+12-26 15:15:23.683  3532  4758 D OplusDexOptimizeManager: androidPackage inappropriate state!
+12-26 15:15:23.684  3532  4758 D ActivityTaskManager: onWindowFocusChanged Task{aa057a8 #71293 type=standard A=10294:com.bevy_iaido.game} would transfer to compact
+12-26 15:15:23.684  3532  3643 I UserAwareMgr: handleTopAppChanged: com.bevy_iaido.game, pid: 24718, uid: 10294
+12-26 15:15:23.684  3532  4758 D ActivityTaskManager: NFW_setLastResumedActivityUncheckLocked:true r:ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t71293} currentFocus:Window{5848c37 u0 NotificationShade}
+12-26 15:15:23.684  3532  4758 D WindowManager: NFW_findFocusedWindowIfNeeded:Window{5848c37 u0 NotificationShade} mCurrentFocus:Window{5848c37 u0 NotificationShade}
+12-26 15:15:23.684  3532  4758 D FlexibleTaskController: onTaskFocusChanged prevTask:Task{43023ba #5 type=home I=com.android.launcher/.Launcher} ,currentTask:Task{aa057a8 #71293 type=standard A=10294:com.bevy_iaido.game}, reason: realStartActivityLocked - onActivityStateChanged
+12-26 15:15:23.684  3532  4758 D OplusFlexibleDCSManager: onNextPkgChanged pkg = com.bevy_iaido.game
+12-26 15:15:23.684  3532  4758 I OplusAppSwitchManagerService: appswitch hasProcess ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t71293}
+12-26 15:15:23.684  3532  4609 I [UAH_CLIENT]: UahEventAcquire, cmdid:0, pkg:com.bevy_iaido.game, identity:com.android.server.wm
+12-26 15:15:23.684  3532  4758 I OplusJoystickManager: handleApplicationSwitch deprecated!
+12-26 15:15:23.684  3532  4758 I GameManagerServiceExt-GameManagerServiceExt: on FG change: com.android.launcher|com.bevy_iaido.game
+12-26 15:15:23.685  3532  4758 I OplusAppSwitchManagerService: appswitch hasProcess ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t71293}
+12-26 15:15:23.685  3532  4758 D ActivityTrigger: ActivityTrigger activityPauseTrigger 
+12-26 15:15:23.686  3532  3779 D OplusAppSwitchListener: App Activity Change
+12-26 15:15:23.687  3532  3779 D OplusAppSwitchListener: Detect com.android.launcher switch to background
+12-26 15:15:23.687  3532  3779 D OplusFeatureReduceBrightness: onAppExit , info = com.android.launcher
+12-26 15:15:23.687  3532  3779 D OplusAppSwitchListener: Detect com.bevy_iaido.game switch to foreground
+12-26 15:15:23.687  3532  3779 W OplusFeatureGlobalLimitBrightness: switch to display normal mode 
+12-26 15:15:23.687  3532  3632 I TaskOrganizerController: onTaskInfoChanged taskid 1 config { mBounds=Rect(0, 0 - 1080, 2376) mAppBounds=Rect(0, 0 - 1080, 2376) mMaxBounds=Rect(0, 0 - 1080, 2376) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=home mAlwaysOnTop=undefined mRotation=ROTATION_0}
+12-26 15:15:23.687  3532  5796 D OplusWifiPower_TriggerCenter: mComponentCallback: fgapplist
+12-26 15:15:23.687  5121  5121 I PluginSeedling--Base: SeedlingPluginService-->191780652 onStateChange: Bundle[{app_switch_resume_pkg=com.bevy_iaido.game, app_switch_exit_pkg=com.android.launcher, state=onFrontAppSwitched, isTransientHide=false, app_switch_resume_activity=android.app.NativeActivity}]
+12-26 15:15:23.687  3532  3632 D OplusFlexibleDragToSplitAnimController: visibleFlexibleTaskInfos delete:1
+12-26 15:15:23.687  3532  3632 E FlexibleWindowManagerService: notifyTaskObserverToAttachController not need to notify!
+12-26 15:15:23.687  3532  3632 I FlexibleWindowManagerService: onFlexibleWindowTaskInfoChanged, return for cur task not embedded
+12-26 15:15:23.687  5121  5121 I PluginSeedling--Origin: LiveAlertInteractorImpl-->notifyEntryDataChanged ENTRY_STATUS_BAR, result:[], noe: false
+12-26 15:15:23.687  3532  5796 D OplusEapManager: mTargetExitName :com.android.launcher
+12-26 15:15:23.687  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.687  5121  5121 I PluginSeedling--Origin: LiveAlertInteractorImpl-->notifyEntryDataChanged ENTRY_NOTIFICATION, result:[], noe: false
+12-26 15:15:23.687  5121  5121 I PluginSeedling--Notification: NotificationRepository-->onDataChanged, []
+12-26 15:15:23.687  5121  5121 I PluginSeedling--Origin: LiveAlertInteractorImpl-->notifyEntryDataChanged ENTRY_AOD, result:[], noe: false
+12-26 15:15:23.687  5121  5121 I PluginSeedling--Aod: AodViewModel-->onDataChanged, size:0
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateAppEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 I OplusHansManager : appSwitch from com.android.launcher to com.bevy_iaido.game, pre resume pkg:null
+12-26 15:15:23.688  3532  5796 D OplusLatencyOptimizerManager: enter pkg: com.bevy_iaido.game isPrevBlackAppTop: false mIsBlackAppTop: false
+12-26 15:15:23.688  3532  5796 D OplusEapManager: mTargetEnterName :com.bevy_iaido.game
+12-26 15:15:23.688  4693  4710 V DCSEX-AppSwitchManager: OnAppSwitchObserver: onAppExit, resuming = com.bevy_iaido.game, target = com.android.launcher, is ResumingFirstStart =  true, is ResumingMultiApp =  false, extensionInfo =  Bundle[mParcelledData.dataSize=564]
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateActivityEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.688  3532  5796 D OplusAppSwitchRuleInfo: generateActivityEnterInfo - launch_source_type =  , launch_source_traceid = 
+12-26 15:15:23.689  4826  8356 I Athena  : AthenaDynamicReceiver: pre_app:com.android.launcher, next_app:com.bevy_iaido.game(10294|24718)
+12-26 15:15:23.689  4693  7698 D DCSEX-AppLaunchEventRecorder: onAppSwitch from = com.android.launcher to = com.bevy_iaido.game
+12-26 15:15:23.689  5121  5175 D ShellTaskOrganizerExt: visibleFlexibleTaskInfos delete:1
+12-26 15:15:23.689  5121  5175 D ShellTaskOrganizerExt: isOnCanvas size:0
+12-26 15:15:23.689  5121  5175 D ShellTaskOrganizerExt: isOnThreeFlexibleCanvas size:0
+12-26 15:15:23.688  4762  4801 W Battery : AppSwitchDetectorV2: OnAppSwitchObserver: onAppExit , info = OplusAppExitInfo = {  targetName = com.android.launcher hasResumingActivity = true resumingPackageName = com.bevy_iaido.game resumingActivityName = android.app.NativeActivity resumingWindowMode = 1 isResumingMultiApp = false isResumingFirstStart = true extension = Bundle[mParcelledData.dataSize=564]} lastReg=1766759958559
+12-26 15:15:23.689  4762  4801 W Battery : AppSwitchManager: onAppSwitch: [m4.o$d@ab8dac0]
+12-26 15:15:23.689  4762  4801 W Battery : ThermalControlUtils: Screen unlock, mIsScreenBlocked incorrect.
+12-26 15:15:23.690 24718 24729 D OplusActivityManager: get AMS extension: android.os.BinderProxy@8c88d0a
+12-26 15:15:23.690  4762  4801 E Battery : ThermalControlUtils: app switch but screen off
+12-26 15:15:23.690 24718 24729 D OplusAppHeapManager: java.lang.NoSuchMethodException: dalvik.system.VMRuntime.updateProcessValue [int, int, int]
+12-26 15:15:23.691  4762  4801 W Battery : ThermalControlUtils: mForegroundPkg=com.bevy_iaido.game mLastWindowMode=1
+12-26 15:15:23.691  4762  4801 W Battery : StateManager: getAppType com.bevy_iaido.game, last=1766790871151
+12-26 15:15:23.691  4762  4801 W Battery : ThermalControllerCenter: mSafetyState=00000,  mSafetyTestConfigList=01111,10111,11011,11101,11110,00111,01011,01101,01110,10011,10101,10110,11001,11010,11100,11111
+12-26 15:15:23.691  4762  4801 W Battery : ThermalControllHandler: tempLevel=[2],userMode=2,gameUserMode=7,appType=-1,envTempType=0,appStates=[],appSwitchSafetyMode=true,split=[],float=[],full=[com.bevy_iaido.game], tempGear=[2],configItemName=screen_off
+12-26 15:15:23.692  1478  8252 I android.system.suspend-service: Start checking autosuspend client...
+12-26 15:15:23.692  4693  4710 V DCSEX-AppSwitchManager: OnAppSwitchObserver: onAppEnter, launchedFrom =  com.android.shell, target =  com.bevy_iaido.game, is firstStart =  true, is multiApp =  false, extensionInfo =  Bundle[mParcelledData.dataSize=948], launch_source_type =  , launch_source_traceid =  
+12-26 15:15:23.692 24718 24718 D CompactWindowAppManager: initCompactApplicationInfo CompactMode: , NormalMode: 
+12-26 15:15:23.693 24718 24729 D SurfaceSyncGroup: preCreateSurfaceSyncGroupTimerThread
+12-26 15:15:23.693  1478  8252 I android.system.suspend-service: autosuspend client checking completed.
+12-26 15:15:23.693  1478  8252 I android.system.suspend-service: Android start to suspend...
+12-26 15:15:23.692  3532  3673 E OplusThermalStats: Error getting package info: com.bevy_iaido.game
+12-26 15:15:23.695  3532  3786 D VRR [OPlusRefreshRateService]: handleFrontAppChange pkgName: com.bevy_iaido.game
+12-26 15:15:23.695  3532  3786 D VRR [OPlusExternalRefreshRateManager]:  [OTI] handleTouchIdlePauseState: policy
+12-26 15:15:23.695  3532  3786 D VRR [OPlusSAManager]: isAutoReady return false. display 4630946450791512195 wtih screenState: 1, isSAType: true, isSMType: false
+12-26 15:15:23.695 24718 24718 V Configuration: Updating configuration, locales updated from [] to [en_US]
+12-26 15:15:23.696  2192  2978 I VRR [MVT]: request is same as current request, ignore it.
+12-26 15:15:23.696  3532  4367 D FusionLightNextGen: raw_lux -1.0, raw_cct -1.0, r/g/b/c: 13.8/13.1/15.4/13.5, R/G/B: 0.0/0.0/0.0, bri 0.0, lux: 0.174548, cct: -1.0, ir: 1.063905, conf: 0, cnt: 0
+12-26 15:15:23.696  3532  6285 I OStatsManager_OplusBatteryStatsManager: notePkgForeground [com.android.launcher10199, com.bevy_iaido.game10294], uid = 10294, pid = 24718, pkgName = com.bevy_iaido.game
+12-26 15:15:23.696 24718 24718 D OplusScrollToTopManager: setIsInWhiteList false
+12-26 15:15:23.697  3532  3631 D OplusBatteryManager: getPsyBatteryRm: 2498
+12-26 15:15:23.697  3532  3631 D BatteryStatsImplExtImpl: resumedUid:10294 resumedBatteryLevel:56  resumedPackage:com.bevy_iaido.game  resumedBatteryRealtimeCapacity:2498
+12-26 15:15:23.697  6304  9452 D OplusAtlas.OplusAudioScene: callback success event:atlas_event_on_foreground_activities_changed eventInfo:pid:24718,uid:10294,hasForegroundActivities:1
+12-26 15:15:23.697 24718 24718 D OplusViewDebugManager: OplusViewDebugManager Constructor android.view.debug.OplusViewDebugManager@749f398 [mHasViewDebugProperty true] [mHasMsgDebugProperty false] [DEBUG false] [EXTRAINFOENABLE false] [LIGHT_OS false]
+12-26 15:15:23.698  3532  3631 D FlexibleTaskController: checkAndSetCloneWindowIfNeed  task =Task{aa057a8 #71293 type=standard A=10294:com.bevy_iaido.game} activity=ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t71293} windowingMode:1 activityType:1
+12-26 15:15:23.698  3532  3631 D FlexibleTaskController: check task which not have enough child, isInSingleWhiteList:false isCloneTask:false
+12-26 15:15:23.698  3532  3631 D FlexibleTaskController: finally set supportCloneWindow:false
+12-26 15:15:23.699  3532  4573 D BackgroundInstallControlService: Package event received: 0
+12-26 15:15:23.694  4762  5144 W Battery : ThermalControllHandler: MSG_THERMAL_CONTROL_CATEGORY_CHANGED
+12-26 15:15:23.699  4762 29906 W Battery : AppSceneCenter: PerfPolicy not enable!
+12-26 15:15:23.700  5027  6293 V OsAgent : broadcastSystemEvent - 7
+12-26 15:15:23.700  2206 13663 D SceneSDK.1.0.4-SNAPSHOT.2206.DeepThinkerAppSwitchAbility: onAppSwitchEvent: AppSwitchEvent(timeStamp=1766790923689, eventType=2, targetName=com.android.launcher, firstStart=false, multiApp=false, windowMode=0, resumingPackageName=com.bevy_iaido.game, resumingActivityName=android.app.NativeActivity, isResumingMultiApp=false, isResumingFirstStart=true)
+12-26 15:15:23.701  2206 13663 I metis_v2_AppSwitchDataCollector: AppExitEvent =  com.android.launcher, NextAppName = com.bevy_iaido.game [Metis|com.oplus.metis|1.5.5-f48228a]
+12-26 15:15:23.701  2154  2154 D AudioFlingerExtImpl: AudioFlingerExtImpl oplusSetParameters: keyvalue onForegroundActivitiesChanged=com.bevy_iaido.game:foreground:1|10294:24718
+12-26 15:15:23.701  2154  2154 D AudioFlingerExtImpl: updateForegroundInfo, mapInf mForegroundMap(1)|[com.bevy_iaido.game]=1, uidPidMapInf mForegroundUidPidMap(1)|[10294]=24718
+12-26 15:15:23.703 24718 24718 W libc    : Access denied finding property "ro.odm.prev.product.name"
+12-26 15:15:23.707  2206  2276 E metis_v2_JenaHandlerManager: local thread match
+12-26 15:15:23.708  2206  2276 E metis_v2_JenaHandlerManager: local thread match
+12-26 15:15:23.708  2206 13663 D SceneSDK.1.0.4-SNAPSHOT.2206.DeepThinkerAppSwitchAbility: onAppSwitchEvent: AppSwitchEvent(timeStamp=1766790923705, eventType=1, targetName=com.bevy_iaido.game, firstStart=true, multiApp=false, windowMode=1, resumingPackageName=, resumingActivityName=, isResumingMultiApp=false, isResumingFirstStart=false)
+12-26 15:15:23.708  2206 13663 I metis_v2_AppSwitchDataCollector: AppEnterEvent =  com.bevy_iaido.game, windowMode = 1,firstStart = true
+12-26 15:15:23.709  2206 13663 I metis_v2_AppSwitchDataCollector:  set isNotifiedTVCast
+12-26 15:15:23.710  2206 13663 I metis_v2_AppSwitchDataCollector: Skip call fire
+12-26 15:15:24.815  1757  1803 W statsd  : StatsPullerManager: Unknown tagId 150146
+12-26 15:15:24.815  1757  1803 E statsd  : Gauge Stats puller failed for tag: 150146 at 93340607092396
+12-26 15:15:24.820  1963  2524 D IRIS_LOG_SERV_I7: [Handler][PQ]pollAll ret -1 quit 0
+12-26 15:15:24.820  1963  2527 D IRIS_LOG_SERV_I7: [Handler]pollAll ret -1 quit 0
+12-26 15:15:24.821  1963  2524 D IRIS_LOG_SERV_I7: [Handler][PQ]pollAll
+12-26 15:15:24.821  1963  2527 D IRIS_LOG_SERV_I7: [Handler]pollAll
+12-26 15:15:24.823  1985  2030 I [UAH_CLIENT]: UahRelease, handle:57988
+12-26 15:15:24.835  3532  4398 I HidlSensorManager: hidl_ssvc_poll: spurious wake up, back to work
+12-26 15:15:24.836  3532  4399 I AidlSensorManager: aidl_ssvc_poll: spurious wake up, back to work
+12-26 15:15:24.845  3532  4619 D OplusWifiPowerWakeupStats: IPV4_TCP_Packet wake up count 96
+12-26 15:15:24.846  5057  5180 W OplusFeedbackInfo: 0xb40000700045b300 c2.qti.hevc.decoder codec[0xb40000700040e800] 2160x2400 inputFps=10 outputFps=4 renderFps=0, discardFps=0
+12-26 15:15:24.847  3532  4619 D OplusWifiPower_WakeupIp: android.uid.shell:2000(192.168.0.***) wakeup host
+12-26 15:15:24.849  2650  2650 D tcmd    : waiting on events (-1ms)
+12-26 15:15:24.856  1757  1803 I statsd  : An anomaly (119840000001) (100198)0x10000->com.bevy_iaido.game[S] (100198)0x20000->10294[I]  has occurred! Informing subscribers.
+12-26 15:15:24.859  3532  4758 W OPLUS_LOG_LOAD: ==LOGS PROG INFO, prog(system_server) ==
+12-26 15:15:24.859  3532  4758 W SurfaceFlingerPuller: Failed to pull atom 150134 from surfaceflinger. Success is 0, binder status is EX_NONE
+12-26 15:15:24.859  1757  1803 E statsd  : Stats puller failed for tag: 150134 at 93340613429063
+12-26 15:15:24.859  1757  1803 W statsd  : StatsPullerManager: Unknown tagId 150146
+12-26 15:15:24.859  1757  1803 E statsd  : Stats puller failed for tag: 150146 at 93340613429063
+12-26 15:15:24.859  3532  4758 W SurfaceFlingerPuller: Failed to pull atom 150119 from surfaceflinger. Success is 0, binder status is EX_NONE
+12-26 15:15:24.860  1757  1803 E statsd  : Gauge Stats puller failed for tag: 150119 at 93340613429063
+12-26 15:15:24.860  1757  1803 I statsd  : An anomaly (104240000001) (42)0x10000->10294[I] (42)0x20000->com.bevy_iaido.game[S] (42)0x30000->android.app.NativeActivity[S]  has occurred! Informing subscribers.
+12-26 15:15:24.862 10894 15782 D ShellSubscriberWorkerThread: the first 8 bytes empty, and RestData length > 8 
+12-26 15:15:24.878  3532  3631 W AccessibilityWindowsPopulator: The displayInfo of this displayId (0) called back from the surface fligner is null
+12-26 15:15:24.897 24718 24718 W System  : ClassLoader referenced unknown path: 
+12-26 15:15:24.898  3532  4367 D FusionLightNextGen: raw_lux -1.0, raw_cct -1.0, r/g/b/c: 27.5/13.1/15.4/27.0, R/G/B: 0.0/0.0/0.0, bri 0.0, lux: 0.349095, cct: -1.0, ir: 0.536390, conf: 0, cnt: 0
+12-26 15:15:24.898 24718 24718 D nativeloader: Configuring clns-9 for other apk . target_sdk_version=30, uses_libraries=, library_path=/data/app/~~xD-oDXKrZdLy4YtHIZsQPg==/com.bevy_iaido.game-IsaLPh17mSi2UfWq5W1tEA==/lib/arm64:/data/app/~~xD-oDXKrZdLy4YtHIZsQPg==/com.bevy_iaido.game-IsaLPh17mSi2UfWq5W1tEA==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.bevy_iaido.game
+12-26 15:15:24.898 24718 24718 D nativeloader: Extending system_exposed_libraries: libbinauralrenderer_wrapper.qti.so:libhoaeffects.qti.so:libsuperNight.oplus.so:libAPSClient-cmd-jni-extension.oplus.so:libsatellite_audio_jni.oplus.so:libortc_so.oplus.so:libsoundtouch.oplus.so:libsoundtouch_jni.oplus.so:libOplusStringJNI-extension.oplus.so:libsatellite_ostx_jni.oplus.so:libapssuspend-jni.oplus.so:libupdateprof.qti.so:libthermalclient.qti.so:libqape.qti.so:libqesdk_ndk_platform.qti.so:liblistenjni.qti.so
+12-26 15:15:24.900 24718 24718 I bevy_iaido.game: AssetManager2(0xb4000070b6950728) locale list changing from [] to [en-US]
+12-26 15:15:24.902  6361  6383 I ostats_tpd: stats_write, records atomId:100100, event_id:868, cpu:1, values: 868-0-1-8252-(vbat)-3-0-1
+12-26 15:15:24.902  6361  6383 I ostats_tpd: stats_write, records atomId:100100, event_id:868, cpu:1, values: 868-0-1-8252-(vbat)-3-1-1
+12-26 15:15:24.902  6361  6383 I ostats_tpd: stats_write, records atomId:100100, event_id:868, cpu:1, values: 868-0-1-8252-(vbat)-3-2-1
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment: Currently set values for:
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[""]
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment:   angle_gl_driver_selection_values=[""]
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment: com.bevy_iaido.game is not listed in per-application setting
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment: ANGLE allowlist from config: 
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment: com.bevy_iaido.game is not listed in ANGLE allowlist or settings, returning default
+12-26 15:15:24.904 24718 24718 V GraphicsEnvironment: Updatable production driver is not supported on the device.
+12-26 15:15:24.906 24718 24718 D ResourcesManagerExtImpl: applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:-1
+12-26 15:15:24.909  3532  4758 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10294. pid: 24718
+12-26 15:15:24.910  3532  4758 I [UAH_CLIENT]: UahEventAcquire, cmdid:2, pkg:none, identity:OplusActivityManagerServiceEnhance
+12-26 15:15:24.912  2159  2159 D GpuServiceExtImpl: getRUSWhiteList  size 0
+12-26 15:15:24.912 24718 24718 I HWUI    : SupportApps size 0
+12-26 15:15:24.913  3532  4758 E closeloop: closeloopopen /proc/oplus_cl/cl_glthread failed(No such file or directory)
+12-26 15:15:24.915 24718 24742 D OplusGraphicsEvent: OplusGraphicsEventListener create now!
+12-26 15:15:24.915 24718 24718 I bevy_iaido.game: AssetManager2(0xb400007062950028) locale list changing from [] to [en-US]
+12-26 15:15:24.915  6388  6436 E ThermalEngine: sensor name fetch error for TZ:68
+12-26 15:15:24.915 24718 24742 D OplusGraphicsEvent: addEventListener success!
+12-26 15:15:24.915 24718 24742 D ExtensionsLoader: createInstance(64bit) : createExtendedFactory
+12-26 15:15:24.915 24718 24742 D ExtensionsLoader: Opened libSchedAssistExtImpl.so
+12-26 15:15:24.915 24718 24718 D ResourcesManagerExtImpl: applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+12-26 15:15:24.916 24718 24742 E SchedAssist: open sharedFd failed with error=Permission denied
+12-26 15:15:24.916 24718 24742 E SchedAssist: open sharedFd failed with error=Permission denied
+12-26 15:15:24.916 24718 24742 E SchedAssist: open sharedFd failed with error=Permission denied
+12-26 15:15:24.916 24718 24742 E SchedAssist: open sharedFd failed with error=Permission denied
+12-26 15:15:24.916 24718 24742 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: QUALCOMM build                   : c81b28e1a5, I5a61fcf667
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Build Date                       : 06/20/25
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: OpenGL ES Shader Compiler Version: E031.45.02.26
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Local Branch                     : 
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Remote Branch                    : refs/tags/AU_LINUX_ANDROID_LA.VENDOR.14.3.0.11.00.00.973.948
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Remote Branch                    : NONE
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Reconstruct Branch               : NOTHING
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Build Config                     : S P 16.1.2 AArch64
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Driver Path                      : /vendor/lib64/egl/libGLESv2_adreno.so
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Driver Version                   : 0762.39
+12-26 15:15:24.918 24718 24742 I AdrenoGLES-0: Process Name                     : com.bevy_iaido.game
+12-26 15:15:24.919 24718 24718 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+12-26 15:15:24.920  6388  6436 E ThermalEngine: sensor name fetch error for TZ:71
+12-26 15:15:24.920 24718 24742 I AdrenoGLES-0: PFP: 0x01520181, ME: 0x01520023
+12-26 15:15:24.922 24718 24718 D OplusInputMethodUtil: init sDebug to false, init sDebugIme to false, init sAlwaysOn to false
+12-26 15:15:24.922 24718 24718 D OplusInputMethodUtil: updateDebugToClass InputMethodManager.DEBUG = false
+12-26 15:15:24.922 24718 24718 D OplusInputMethodUtil: updateDebugToClass ImeFocusController.DEBUG = false
+12-26 15:15:24.922 24718 24718 D OplusInputMethodUtil: updateDebugToClass OnBackInvokedDispatcher.DEBUG = false
+12-26 15:15:24.922 24718 24718 D OplusInputMethodUtil: updateDebugToClass InsetsController.DEBUG = false
+12-26 15:15:24.922 24718 24718 D OplusInputMethodUtil: updateDebugToClass BaseInputConnection.DEBUG = false
+12-26 15:15:24.923 24718 24718 I oplus.android.OplusFrameworkFactoryImpl: Unknow feature:IOplusTextViewRTLUtilForUG
+12-26 15:15:24.924  1992  1992 I qspmHal : enter getGpuProf at: 1559366268
+12-26 15:15:24.924  1992  1992 I qspmHal : gpuProfName:com.bevy_iaido.game-gpu - gpu prof_info.path:/data/vendor/gaming/com.bevy_iaido.game-gpu
+12-26 15:15:24.924  1992  1992 I qspmHal : PID 24718 from GFX matched.
+12-26 15:15:24.924  1992  1992 E qspmHal : GPU profile file NOT found !!
+12-26 15:15:24.925 24718 24742 I AdrenoUtils: <ReadGpuID:357>: Reading chip ID through GSL
+12-26 15:15:24.929 24718 24718 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+12-26 15:15:24.930 24718 24742 D ExtensionsLoader: createInstance(64bit) : createExtendedFactory
+12-26 15:15:24.931 24718 24742 D ExtensionsLoader: Opened libeglextimpl.so
+12-26 15:15:24.931 24718 24718 D ScrollOptimizationHelper: can't find the config file for optimizaiton
+12-26 15:15:24.931 24718 24718 D ScrollOptimizationHelper: will not debug for debug is false
+12-26 15:15:24.931 24718 24718 I oplus.android.OplusFrameworkFactoryImpl: get feature:IOplusDynamicVsyncFeature
+12-26 15:15:24.931 24718 24718 I oplus.android.OplusFrameworkFactoryImpl: get feature:IOplusDynamicVsyncFeature
+12-26 15:15:24.931 24718 24718 I oplus.android.OplusFrameworkFactoryImpl: get feature:IOplusDynamicVsyncFeature
+12-26 15:15:24.931 24718 24742 D PreCache: [IPreCacheRus]loadRUSConfigs#102 failed to transact: -22 prc:com.bevy_iaido.game
+12-26 15:15:24.934  1478  8252 I android.system.suspend-service: Android suspend exit.
+12-26 15:15:24.935 24718 24718 W HWUI    : Image decoding logging dropped!
+12-26 15:15:24.936 24718 24718 W HWUI    : Image decoding logging dropped!
+12-26 15:15:24.940 24718 24718 W HWUI    : Image decoding logging dropped!
+12-26 15:15:24.949 24718 24718 D nativeloader: Load /data/app/~~xD-oDXKrZdLy4YtHIZsQPg==/com.bevy_iaido.game-IsaLPh17mSi2UfWq5W1tEA==/lib/arm64/libbevy_iaido.so using class loader ns clns-9 (caller=<unknown>): ok
+12-26 15:15:24.950 24718 24718 E OplusPredictiveBackController:  NoSuchMethodException 
+12-26 15:15:24.950 24718 24718 D OplusPredictiveBackController: initPredictiveBackConfig for android.app.NativeActivity@2827b0d initPredictiveBackConfig mShouldInterceptKeyEvent false
+12-26 15:15:24.950 24718 24718 D WindowOnBackDispatcher:  predictive settings is disabled for com.bevy_iaido.game
+12-26 15:15:24.968 24718 24746 D colorx  : VulkanExtImpl Init
+12-26 15:15:24.970 24718 24746 D vulkan  : searching for layers in '/data/app/~~xD-oDXKrZdLy4YtHIZsQPg==/com.bevy_iaido.game-IsaLPh17mSi2UfWq5W1tEA==/lib/arm64'
+12-26 15:15:24.970 24718 24746 D vulkan  : searching for layers in '/data/app/~~xD-oDXKrZdLy4YtHIZsQPg==/com.bevy_iaido.game-IsaLPh17mSi2UfWq5W1tEA==/base.apk!/lib/arm64-v8a'
+12-26 15:15:24.971 24718 24746 D colorx  : I can't find colorx layer , let's enumerate colorx layers first.
+12-26 15:15:24.977  1992  1992 I qspmHal : enter getGpuProf at: 1559366321
+12-26 15:15:24.977  1992  1992 I qspmHal : gpuProfName:com.bevy_iaido.game-gpu - gpu prof_info.path:/data/vendor/gaming/com.bevy_iaido.game-gpu
+12-26 15:15:24.977  1992  1992 I qspmHal : PID 24718 from GFX matched.
+12-26 15:15:24.977  1992  1992 E qspmHal : GPU profile file NOT found !!
+12-26 15:15:24.978 24718 24746 I AdrenoVK-0: ===== BEGIN DUMP OF OVERRIDDEN SETTINGS =====
+12-26 15:15:24.978 24718 24746 I AdrenoVK-0: ===== END DUMP OF OVERRIDDEN SETTINGS =====
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: QUALCOMM build          : c81b28e1a5, I5a61fcf667
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Build Date              : 06/20/25
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Shader Compiler Version : E031.45.02.26
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Local Branch            : 
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Remote Branch           : refs/tags/AU_LINUX_ANDROID_LA.VENDOR.14.3.0.11.00.00.973.948
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Remote Branch           : NONE
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Reconstruct Branch      : NOTHING
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Build Config            : S P 16.1.2 AArch64
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Driver Path             : /vendor/lib64/hw/vulkan.adreno.so
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Driver Version          : 0762.39
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: PFP                     : 0x01520181
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: ME                      : 0x01520023
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Application Name    : wgpu
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Application Version : 0x00000001
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Engine Name         : wgpu-hal
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Engine Version      : 0x00000002
+12-26 15:15:24.981 24718 24746 I AdrenoVK-0: Api Version         : 0x00403000
+12-26 15:15:25.020  3532  3631 W ActivityTaskManager: Activity top resumed state loss timeout for ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t71293}
+12-26 15:15:25.021  3532  3631 W ActivityTaskManager: Activity pause timeout for ActivityRecord{57056981 u0 com.bevy_iaido.game/android.app.NativeActivity t71293}
+12-26 15:15:25.021  3532  3631 D ITheiaManagerExt: [sendEvent] TheiaEvent:[id:0x00000002 name:activityPauseTimeout type:java enable:false reportFreq:1800000 logType:4099 delay:30000 condition:0 recoveryId:0 extraInfo:] versionId:202409050900 INCREMENTAL:U.R4T3.455aedf-24a8ae8-24c241c
+12-26 15:15:25.021  3532  3631 W ITheiaManagerExt: [sendEvent] the event state is disable: 2
+12-26 15:15:25.027  1757  1803 E statsd  : Stats puller failed for tag: 150134 at 93341943800572
+12-26 15:15:25.028  1757  1803 W statsd  : StatsPullerManager: Unknown tagId 150146
+12-26 15:15:25.029  1757  1803 E statsd  : Stats puller failed for tag: 150146 at 93341943800572
+12-26 15:15:25.030  3532  3631 D BatteryStatsImplExtImpl: pausedBatteryLevel:56 activityFocusedTimeInMin:0
+12-26 15:15:25.033  3532  4573 D BackgroundInstallControlService: Package event received: 0
+12-26 15:15:25.034  1478  8252 I android.system.suspend-service: Start checking autosuspend client...
+12-26 15:15:25.034  1478  8252 I android.system.suspend-service: autosuspend client checking completed.
+12-26 15:15:25.034  1478  8252 I android.system.suspend-service: Android start to suspend...
+12-26 15:15:25.038  3532  6285 I OStatsManager_OplusBatteryStatsManager: notePkgBackground [com.bevy_iaido.game10294], uid = 10199, pid = 5244, pkgName = com.android.launcher
+12-26 15:15:25.038  6304  9452 D OplusAtlas.OplusAudioScene: callback success event:atlas_event_on_foreground_activities_changed eventInfo:pid:5244,uid:10199,hasForegroundActivities:0
+12-26 15:15:25.039  3532  4851 D OsenseCommonUtils: /dev/memcg/apps/uid_10199/memory.app_score not exist
+12-26 15:15:25.041  3532  3631 W ProcessStats: Tracking association SourceState{5f09065 com.google.android.gms/10115 BFgs #126310} whose proc state 4 is better than process ProcessState{a3093f3 com.google.android.gms.unstable/10115 pkg=com.google.android.gms} proc state 5 (7 skipped)
+12-26 15:15:25.043 24718 24746 I event /Users/him/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_render-0.14.2/src/rAdapterInfo { name: "Adreno (TM) 750", vendor: 20803, device: 1124406273, device_type: IntegratedGpu, driver: "Qualcomm Technologies Inc. Adreno Vulkan Driver", driver_info: "Driver Build: c81b28e1a5, I5a61fcf667, 1750408231\nDate: 06/20/25\nCompiler Version: E031.45.02.26\nDriver Branch: \n", backend: Vulkan }
+12-26 15:15:25.043  3532  4558 I MR2ServiceImpl: Updating composite discovery preference | preference: RouteDiscoveryRequest{ preferredFeatures={}, activeScan=false }, active routers: []
+12-26 15:15:25.044  5027  6293 V OsAgent : broadcastSystemEvent - 7
+12-26 15:15:25.102 20090 20169 I APS_ALOG: flushRoutine g_immediateFlush=0 g_pendingCount=0 g_oobCount=0 asan-debug7
+12-26 15:15:25.102 20090 20169 E APS_ALOG: CAM_ALOG_LIMIT,Fatal Err! mFd -1
+12-26 15:15:26.049  1963  2527 D IRIS_LOG_SERV_I7: [Handler]pollAll ret -1 quit 0
+12-26 15:15:26.049  1989  5194 W QC2V4l2Decoder: [v4lhvcD_22] Allocating output buffer timedout, 1127ms elapsed since last input buffer queued (threshold 1000ms)
+12-26 15:15:26.049  1963  2527 D IRIS_LOG_SERV_I7: [Handler]pollAll
+12-26 15:15:26.050  1963  2524 D IRIS_LOG_SERV_I7: [Handler][PQ]pollAll ret -1 quit 0
+12-26 15:15:26.050  1963  2524 D IRIS_LOG_SERV_I7: [Handler][PQ]pollAll
+12-26 15:15:26.053  2650  2650 D tcmd    : waiting on events (-1ms)
+12-26 15:15:26.061  3532  4398 I HidlSensorManager: hidl_ssvc_poll: spurious wake up, back to work
+12-26 15:15:26.061  3532  4399 I AidlSensorManager: aidl_ssvc_poll: spurious wake up, back to work
+12-26 15:15:26.065  3532  4619 D OplusWifiPowerWakeupStats: WOW_REASON_LOCAL_DATA_UC_DROP wake up count 2
+12-26 15:15:26.073  1985  1985 I [UAH_CLIENT]: UahPlatformResAcquire
+12-26 15:15:26.074  1985  1985 I [UAH_CLIENT]: UahEventAcquire, cmdid:-3, pkg:1989 955, identity:qcom-perfd
+12-26 15:15:26.089  1985  2027 E ANDR-PERF-RESOURCEQS: ANDR-PERF-RESOURCEQS: AddAndApply() 125: Resource with major=16, minor=0 not supported
+12-26 15:15:26.098  9432  9462 W .adservices.api: Reducing the number of considered missed Gc histogram windows from 305 to 100
+12-26 15:15:26.124  3532  4367 D FusionLightNextGen: raw_lux -1.0, raw_cct -1.0, r/g/b/c: 0.0/0.0/0.0/0.0, R/G/B: 0.0/0.0/0.0, bri 0.0, lux: 0.000000, cct: -1.0, ir: 0.000000, conf: 0, cnt: 0
+12-26 15:15:26.127  6361  6383 I ostats_tpd: stats_write, records atomId:100100, event_id:868, cpu:0, values: 868-0-1-8252-(vbat)-3-0-1
+12-26 15:15:26.127  6361  6383 I ostats_tpd: stats_write, records atomId:100100, event_id:868, cpu:0, values: 868-0-1-8252-(vbat)-3-1-1
+12-26 15:15:26.127  6361  6383 I ostats_tpd: stats_write, records atomId:100100, event_id:868, cpu:0, values: 868-0-1-8252-(vbat)-3-2-1
+12-26 15:15:26.143  6388  6436 E ThermalEngine: sensor name fetch error for TZ:68
+12-26 15:15:26.144  3532  3643 I UserAwareMgr: handleAppChangedToBg, pkgName: com.bevy_iaido.game, pid: 24718
+12-26 15:15:26.148  6388  6436 E ThermalEngine: sensor name fetch error for TZ:71
+12-26 15:15:26.153  5027  6293 V OsAgent : broadcastSystemEvent - 7
+12-26 15:15:26.162  1478  8252 I android.system.suspend-service: Android suspend exit.
+12-26 15:15:26.162  1478  4622 I android.system.suspend-service: First holding wakelock name = PowerManagerService.WakeLocks
+12-26 15:15:26.163  3532  5846 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.169  1755 22723 E TetherController: property_get sys.radio.data.modem_share_flag return 0, 1!
+12-26 15:15:26.175  3532  5846 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.176  3532  4437 V NetworkPolicy: updateNetworkEnabledNL() return
+12-26 15:15:26.176  3532  4437 V NetworkPolicy: updateNotificationsNL not process
+12-26 15:15:26.179  1478  4622 I android.system.suspend-service: Last release wakelock name = PowerManagerService.WakeLocks
+12-26 15:15:26.179  1478  4622 I android.system.suspend-service: mAutosuspendEnabled=1
+12-26 15:15:26.179  5596  5965 V MonthTrafficAlert: getWarningNotification subId:1 numWarningNotificaion:0
+12-26 15:15:26.179  3532  4238 D osense.compress: com.google.android.apps.nbu.files do shrink, target ratio = 17, final ratio = 20, cur ratio = 12
+12-26 15:15:26.179  1478  4385 I android.system.suspend-service: First holding wakelock name = WakeLockCheck
+12-26 15:15:26.180  1478  4385 I android.system.suspend-service: Last release wakelock name = WakeLockCheck
+12-26 15:15:26.180  1478  4385 I android.system.suspend-service: mAutosuspendEnabled=1
+12-26 15:15:26.220 24718 24746 D AudioSystem: onNewService: media.audio_policy service obtained 0xb4000070132a9f40
+12-26 15:15:26.221 24718 24746 D AudioSystem: getService: checking for service media.audio_policy: 0xb4000070132a9f40
+12-26 15:15:26.221  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.222 24718 24746 D AudioSystem: onNewServiceWithAdapter: media.audio_flinger service obtained 0xb400007005b7fe40
+12-26 15:15:26.222  2154  3902 D AudioFlinger: updateWakeLockUids_l AudioOut_45 uids:
+12-26 15:15:26.222  2154 29760 D AudioFlinger: updateWakeLockUids_l AudioIn_CE uids:
+12-26 15:15:26.222  2154  3894 D AudioFlinger: updateWakeLockUids_l AudioOut_1D uids:
+12-26 15:15:26.222  2154  3901 D AudioFlinger: updateWakeLockUids_l AudioOut_3D uids:
+12-26 15:15:26.222  2154  3892 D AudioFlinger: updateWakeLockUids_l AudioOut_15 uids:
+12-26 15:15:26.222  2154  3906 D AudioFlinger: updateWakeLockUids_l AudioOut_4D uids:
+12-26 15:15:26.222  2154  3885 D AudioFlinger: updateWakeLockUids_l AudioOut_D uids:
+12-26 15:15:26.224  1478  4385 I android.system.suspend-service: First holding wakelock name = PowerManagerService.WakeLocks
+12-26 15:15:26.224 24718 24746 D AudioSystem: getService: checking for service media.audio_flinger: 0xb4000070132d1040
+12-26 15:15:26.225  3532  5846 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.225  2154 29857 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.225  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.225  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.226  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.226  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.226  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.226  2154  7156 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.227  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.227  3532  4955 E OGuardManager:  mMainHandler is null.
+12-26 15:15:26.229  2154  7156 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.230  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.231  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.232  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.232  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.232  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.232  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.232  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.232  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.233  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.234  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.235  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.236  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.237  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.238  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.239  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.240  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.241  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.242  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.243  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.244  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.245  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.246  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.247  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.248  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  7156 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  7156 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  2154 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249  2154  7156 D EngineExtImpl: addRemoteSubmixDevice, currentUid:0, currentPid:0, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.249 24718 24746 I OboeAudio: openStreamInternal() OUTPUT -------- OboeVersion1.8.1 --------
+12-26 15:15:26.250 24718 24746 D OboeAudio: AAudioLoader():  dlopen(libaaudio.so) returned 0xf34688af8606dfc9
+12-26 15:15:26.250 24718 24746 I AAudio  : AAudioStreamBuilder_openStream() called ----------------------------------------
+12-26 15:15:26.250 24718 24746 I AudioStreamBuilder: rate   =  44100, channels  = 2, channelMask = 0x80000003, format   = 5, sharing = SH, dir = OUTPUT
+12-26 15:15:26.250 24718 24746 I AudioStreamBuilder: device = AUDIO_PORT_HANDLE_NONE, sessionId = -1, perfMode = 10, callback: ON with frames = 0, error callback: ON
+12-26 15:15:26.250 24718 24746 I AudioStreamBuilder: usage  =      1, contentType = 2, inputPreset = 6, allowedCapturePolicy = 0
+12-26 15:15:26.250 24718 24746 I AudioStreamBuilder: privacy sensitive = false, opPackageName = (null), attributionTag = (null)
+12-26 15:15:26.250 24718 24746 D AudioStreamBuilder: build, global mmap policy is 0
+12-26 15:15:26.250 24718 24746 D AudioStreamBuilder: build, system mmap policy is 2
+12-26 15:15:26.250 24718 24746 D AudioStreamBuilder: build, final mmap policy is 2
+12-26 15:15:26.250 24718 24746 D AudioStreamBuilder: build, system mmap exclusive policy is 2
+12-26 15:15:26.251 24718 24746 D AudioStreamBuilder: build, final mmap exclusive policy is 2
+12-26 15:15:26.251 24718 24746 D AudioStreamBuilder: build() MMAP not used because AAUDIO_PERFORMANCE_MODE_LOW_LATENCY not requested.
+12-26 15:15:26.251 24718 24746 D bevy_iaido.game: PlayerBase::PlayerBase()
+12-26 15:15:26.251 24718 24746 D AudioStreamTrack: open(), request notificationFrames = 0, frameCount = 0
+12-26 15:15:26.251 24718 24746 I AudioTrack: set(): type=audio,case=1,attributes=1,content_type=2,usage=1,source=0,flags=0x8000
+12-26 15:15:26.251 24718 24746 D AudioTrackExtImpl: AudioTrackExtImpl init
+12-26 15:15:26.251 24718 24746 D ExtensionsLoader: createInstance(64bit) : createExtendedFactory
+12-26 15:15:26.252 24718 24746 D ExtensionsLoader: Opened libSchedAssistExtImpl.so
+12-26 15:15:26.252 24718 24746 D AudioTrack: set(): streamType -1, sampleRate 44100, format 0x5, channelMask 0x3, frameCount 0, flags #2, notificationFrames 0, sessionId 0, transferType 1, uid -1, pid -1
+12-26 15:15:26.252 24718 24746 D ListServiceUtils: mListServiceUtils::init CallingPid 24718
+12-26 15:15:26.252 24718 24746 D ListServiceUtils: mListServiceUtils::init this 0xb400007005be8400
+12-26 15:15:26.252 24718 24746 I AudioTrack: set(): 0xb40000707d0f8200, Create AudioTrackThread, tid = 24757
+12-26 15:15:26.252 24718 24746 D AudioTrackExtImpl: doSchedBoost, set audioapp task boost, pid=24718, tid=24746, enable=1, ret=0
+12-26 15:15:26.253  2154  7156 D AudioBoost: audioSchedBoost, pid=2154, tid=7156, enable=1, ret=0
+12-26 15:15:26.253  2154  7156 D AudioFlingerExtImpl: addActiveAudioSession, add 4233, uid 10294, map size 3
+12-26 15:15:26.253  2154  7156 D NativePermissionController: checkPermission: missing 1 for 10294
+12-26 15:15:26.253  2154  7156 D NativePermissionController: checkPermission: missing 3 for 10294
+12-26 15:15:26.253  2154  7156 D NativePermissionController: checkPermission: missing 5 for 10294
+12-26 15:15:26.254  2154  7156 D EngineExtImpl: addRemoteSubmixDevice, currentUid:10294, currentPid:24718, captureUid:0, capturePid:0, castDeviceType:-1, needCapture:1, devices2:
+12-26 15:15:26.254  2154  7156 D AudioPolicyManagerExtImpl: forceOutputForMusicEffects Enter: session 4233, dev {AUDIO_DEVICE_OUT_SPEAKER, @:}, streamType 3, flags 2, forced_deep 0
+12-26 15:15:26.254  2154  7156 D AudioPolicyManagerExtImpl: check callingUid 10294 whose pacakge name is not in fast-audio-effects
+12-26 15:15:26.254  2154  7156 D AudioPolicyManagerExtImpl: forceOutputForMusicEffects Done:  flags 2,  forced_deep 0
+12-26 15:15:26.254  2154  7156 D APM_AudioPolicyManager: mSpatializerOutput is null, canBeSpatializedInt=0, forceSpatialized:0 forceMss 0 forceMeta 0
+12-26 15:15:26.254  2154  7156 D AudioBoost: audioSchedBoost, pid=2154, tid=7156, enable=1, ret=0
+12-26 15:15:26.255  2154  2898 E GameAudioEffects: outputSelected: call getListValueByUid(fast-audio-effects) but return null
+12-26 15:15:26.255  2154  7156 D AudioFlinger: createTrack_l output(13) original frameCount 0  mNormalFrameCount 960 mFrameCount(hal) 192 minFrameCount 2658 notificationsPerBuffer 0 mSampleRate 48000 halLatencyMs 61
+12-26 15:15:26.255  2154  7156 D AudioFlinger: Client defaulted notificationFrames to 886 for frameCount 2658
+12-26 15:15:26.255  2154  7156 D AudioFlinger: createTrack_l output(13) final frameCount 2658 for track session 4233 , mFrameCount 192, mNormalFrameCount 960, notificationFrameCount 886
+12-26 15:15:26.255  2154  7156 I AF::PthrPatchRecord: creating track with enforcement level 0
+12-26 15:15:26.257  2154  7156 D AudioFlinger_PlaybackThread_TrackExtImpl: HoloAudio, create track pkg name:com.bevy_iaido.game
+12-26 15:15:26.257  2719  2719 D HoloAudio::SpecailizerPLService_Aidl: getMetaInfoByPkgName, 
+12-26 15:15:26.257  2154  7156 D AudioFlingerExtImpl: HoloAudio: audioFlingerExt getMetaInfo valueis:
+12-26 15:15:26.257  2154  7156 D AudioFlinger_PlaybackThread_TrackExtImpl: HoloAudio, there is no policy for this pkg:com.bevy_iaido.game
+12-26 15:15:26.257  2154  7156 I AF::Track: Track, track(0xb400007050a50c00): mFastIndex -1, mStreamType 3, mId 553, mPortId 756, mFrameCount 2658, mSampleRate 44100, mFormat 5, mChannelCount 2, thread 0xb40000703e052600, sessionId 4233, AudioOut_D, primary-6
+12-26 15:15:26.258  2154  7156 D AudioBoost: audioSchedBoost, pid=2154, tid=7156, enable=0, ret=0
+12-26 15:15:26.258  2154  7156 D AudioBoost: audioSchedBoost, pid=2154, tid=7156, enable=0, ret=0
+12-26 15:15:26.259 24718 24746 D AudioTrack: createTrack state 0 output.outputId=13
+12-26 15:15:26.260  2154  7156 D AudioFlingerExtImpl: oplusGetParametersBypassLock:only system or list app is allowed to get oplus parameters:is_direct_pcm_track, uid:10294
+12-26 15:15:26.260  2154  7156 D AudioFlingerExtImpl: oplusGetParameters:only system or list app is allowed to get oplus parameters:is_direct_pcm_track, uid:10294
+12-26 15:15:26.260  1875 31240 D AHAL: AudioStream: astream_out_get_parameters: 1169: enter
+12-26 15:15:26.260  1875 31240 D AHAL: AudioStream: astream_out_get_parameters: 1191: keys: is_direct_pcm_track
+12-26 15:15:26.260  1875 31240 D AHAL: AudioStream: astream_out_get_parameters: 1237: exit: returns - is_direct_pcm_track=false
+12-26 15:15:26.261 24718 24746 I AudioTrack: createTrack_l(756) on outputId(13) : 0xb40000707d0f8200, mCblk = 0x7166df0000,  mLatency = 121, mAfLatency = 61, frameCount = 2658, mSampleRate = 44100, mFlags = 0x2, mReqFrameCount = 2658, mNotificationFramesAct = 886
+12-26 15:15:26.262 24718 24746 D AudioTrackExtImpl: doSchedBoost, set audioapp task boost, pid=24718, tid=24746, enable=0, ret=0
