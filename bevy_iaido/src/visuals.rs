@@ -36,7 +36,7 @@ const AI_ATTACK_POWER_FRAMES: [&str; 4] = [
     "power_attack_3.png",
 ];
 const AI_BLOCK_CHANCE: f32 = 0.50;
-pub(crate) const AI_ATTACK_RANGE: f32 = 10.0;
+pub(crate) const AI_ATTACK_RANGE: f32 = 30.0;
 const AI_ATTACK_COOLDOWN: f32 = 1.7;
 const AI_APPROACH_SPEED: f32 = 120.0;
 pub(crate) const AI_STOP_DISTANCE: f32 = AI_ATTACK_RANGE * 0.9;
@@ -57,7 +57,7 @@ const AI_DODGE_FRAMES: [&str; 2] = ["dodge_0.png", "dodge_1.png"];
 const AI_HITS_TO_DEATH: u8 = 1;
 const DEATH_FADE_SECONDS: f32 = 0.50;
 const RESPAWN_FADE_SECONDS: f32 = 0.50;
-pub(crate) const HIT_RANGE: f32 = 10.0;
+pub(crate) const HIT_RANGE: f32 = 30.0;
 const BLOCK_WINDOW_MS: u64 = 150;
 const STAGGER_DISTANCE: f32 = 80.0;
 pub(crate) const MIN_SEPARATION: f32 = 1.0;
@@ -85,7 +85,7 @@ const BLOCK_HIT_FRAME: &str = "block_hit.png";
 const BACK_HEAVY_FRAME: &str = "back_heavy_stance.png";
 const S_PRESS_FRAME: &str = "duel.png";
 const S_RELEASE_FRAMES: [&str; 2] = ["fast-attack-forward.png", "fast_attack_forward1.png"];
-const S_DOUBLE_FRAMES: [&str; 2] = ["heavy_spin.png", "heavy_spin_2.png"];
+const S_DOUBLE_FRAMES: [&str; 3] = ["heavy_spin.png", "heavy_spin_2.png", "heavy_spin_3.png"];
 const S_DOUBLE_RETURN: &str = "back_fast_stance.png";
 const S_DOUBLE_WINDOW_MS: u64 = 250;
 const SX_FRAMES: [&str; 2] = ["top_slash_heavy_1.png", "top_slash_heavy.png"];
