@@ -21,14 +21,20 @@ pub struct VisualsPlugin;
 const HUMAN_FRAMES_DIR: &str = "atlas/white_samurai";
 const AI_FRAMES_DIR: &str = "atlas/red_samurai";
 const AI_IDLE_FRAME: &str = "red_samurai__tile_3.png";
-const AI_ATTACK_FRAMES: [&str; 3] = [
+const AI_ATTACK_FRAMES: [&str; 9] = [
     "red_samurai__tile_0.png",
     "red_samurai__tile_1.png",
     "red_samurai__tile_2.png",
+    "red_fast_attack_0.png",
+    "red_fast_attack_1.png",
+    "power_attack_0.png",
+    "power_attack_1.png",
+    "power_attack_2.png",
+    "power_attack_3.png",
 ];
 const AI_BLOCK_CHANCE: f32 = 0.15;
 const AI_ATTACK_RANGE: f32 = 140.0;
-const AI_ATTACK_COOLDOWN: f32 = 2.5;
+const AI_ATTACK_COOLDOWN: f32 = 1.2;
 const AI_APPROACH_SPEED: f32 = 120.0;
 const AI_STOP_DISTANCE: f32 = 120.0;
 const AI_DEATH_FRAMES: [&str; 4] = [
@@ -859,7 +865,7 @@ fn handle_slash_cue(
 fn reset_character_frames(
     mut commands: Commands,
     time: Res<Time>,
-    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>, &mut ResetFrame)>,
+    mut char_q: Query<(Entity, &Character, &mut FrameIndex, &mut Handle<Image>, &mut ResetFrame), Without<DeathRespawn>>,
     frames: Res<FrameLibrary>,
 ) {
     for (entity, character, mut frame_idx, mut texture, mut reset) in char_q.iter_mut() {
@@ -1249,7 +1255,7 @@ fn update_frame_sequences(
     debug_state: Res<DebugState>,
     frames: Res<FrameLibrary>,
     mut commands: Commands,
-    mut q: Query<(Entity, &Character, &mut FrameSequence, &mut FrameIndex, &mut Handle<Image>)>,
+    mut q: Query<(Entity, &Character, &mut FrameSequence, &mut FrameIndex, &mut Handle<Image>), Without<DeathRespawn>>,
 ) {
     if !matches!(*debug_state, DebugState::Animation) { return; }
     for (entity, character, mut seq, mut frame_idx, mut texture) in q.iter_mut() {
@@ -1479,7 +1485,7 @@ fn update_ai_proximity(
     if ai_attacking { return; }
     if parry_state.ai_ready && (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
-        let jitter = rand::thread_rng().gen_range(0.0..1.0);
+        let jitter = rand::thread_rng().gen_range(0.0..0.3);
         ai_state.cooldown = AI_ATTACK_COOLDOWN + jitter;
         parry_state.ai_ready = false;
         debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI PARRY COUNTER".to_string() });
@@ -1488,7 +1494,7 @@ fn update_ai_proximity(
     if ai_state.cooldown > 0.0 { return; }
     if (h.x - a.x).abs() <= AI_ATTACK_RANGE {
         slash_tx.send(SlashCue { actor: Actor::Ai });
-        let jitter = rand::thread_rng().gen_range(0.0..1.5);
+        let jitter = rand::thread_rng().gen_range(0.0..0.5);
         ai_state.cooldown = AI_ATTACK_COOLDOWN + jitter;
         debug_input_tx.send(DebugInputCue { actor: Actor::Ai, label: "AI ATTACK".to_string() });
     }
