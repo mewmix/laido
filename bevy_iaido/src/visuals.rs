@@ -684,6 +684,8 @@ fn setup_scene(
         asset_server.load("background/burning_village_1.png"),
         asset_server.load("background/burning_village_2.png"),
         asset_server.load("background/burning_village_3.png"),
+        asset_server.load("background/burning_village_4.png"),
+        asset_server.load("background/burning_village_5.png"),
     ];
 
     commands.spawn((
